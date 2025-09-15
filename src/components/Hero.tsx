@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-image.jpg";
 import { useEffect, useRef } from "react";
-import { animate, stagger } from "animejs";
+import anime from "animejs/lib/anime.es.js";
 import { breathingAnimation, floatingElements, scriptureGlow } from "@/utils/animations";
 
 const Hero = () => {
@@ -13,34 +13,37 @@ const Hero = () => {
   useEffect(() => {
     // Hero entrance animation sequence with delays
     if (titleRef.current) {
-      animate(titleRef.current, {
+      anime({
+        targets: titleRef.current,
         opacity: [0, 1],
-        y: [50, 0],
+        translateY: [50, 0],
         scale: [0.8, 1],
         duration: 1200,
-        ease: 'outExpo',
+        easing: 'easeOutExpo',
       });
     }
     
     setTimeout(() => {
       if (taglineRef.current) {
-        animate(taglineRef.current, {
+        anime({
+          targets: taglineRef.current,
           opacity: [0, 1],
-          y: [30, 0],
+          translateY: [30, 0],
           duration: 800,
-          ease: 'outQuart',
+          easing: 'easeOutQuart',
         });
       }
     }, 600);
     
     setTimeout(() => {
       if (buttonRef.current) {
-        animate(buttonRef.current, {
+        anime({
+          targets: buttonRef.current,
           opacity: [0, 1],
-          y: [20, 0],
+          translateY: [20, 0],
           scale: [0.9, 1],
           duration: 600,
-          ease: 'outBack',
+          easing: 'easeOutBack',
         });
       }
     }, 1000);

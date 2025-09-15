@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { animate } from 'animejs';
+import anime from 'animejs/lib/anime.es.js';
 
 export const useAnimeOnScroll = <T extends HTMLElement = HTMLDivElement>(
   animationConfig: any,
@@ -16,7 +16,10 @@ export const useAnimeOnScroll = <T extends HTMLElement = HTMLDivElement>(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            animate(element, animationConfig);
+            anime({
+              targets: animationConfig.targets || element,
+              ...animationConfig
+            });
             
             if (triggerOnce) {
               observer.unobserve(element);
@@ -43,7 +46,10 @@ export const useAnimeSequence = <T extends HTMLElement = HTMLDivElement>(sequenc
 
     sequence.forEach((config, index) => {
       setTimeout(() => {
-        animate(elementRef.current, config);
+        anime({
+          targets: elementRef.current,
+          ...config
+        });
       }, index * (config.delay || 100));
     });
   };

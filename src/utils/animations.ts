@@ -1,56 +1,59 @@
-import { animate, stagger } from 'animejs';
+import anime from 'animejs/lib/anime.es.js';
 
 export const fadeInUp = {
   opacity: [0, 1],
-  y: [30, 0],
+  translateY: [30, 0],
   duration: 800,
-  ease: 'outCubic',
+  easing: 'easeOutCubic',
 };
 
 export const staggeredFadeIn = {
   opacity: [0, 1],
-  y: [20, 0],
+  translateY: [20, 0],
   duration: 600,
-  delay: stagger(100),
-  ease: 'outQuart',
+  delay: anime.stagger(100),
+  easing: 'easeOutQuart',
 };
 
 export const scaleIn = {
   scale: [0.9, 1],
   opacity: [0, 1],
   duration: 500,
-  ease: 'outBack',
+  easing: 'easeOutBack',
 };
 
 export const textReveal = {
   opacity: [0, 1],
-  y: [50, 0],
+  translateY: [50, 0],
   duration: 1000,
-  delay: stagger(50, { from: 300 }),
-  ease: 'outExpo',
+  delay: anime.stagger(50, { from: 300 }),
+  easing: 'easeOutExpo',
 };
 
 export const breathingAnimation = (element: HTMLElement) => {
-  animate(element, {
+  anime({
+    targets: element,
     scale: [1, 1.02, 1],
     duration: 3000,
     loop: true,
-    ease: 'inOutSine',
+    easing: 'easeInOutSine',
   });
 };
 
 export const floatingElements = (element: HTMLElement) => {
-  animate(element, {
-    y: [-5, 5],
+  anime({
+    targets: element,
+    translateY: [-5, 5],
     duration: 4000,
     direction: 'alternate',
     loop: true,
-    ease: 'inOutSine',
+    easing: 'easeInOutSine',
   });
 };
 
 export const scriptureGlow = (element: HTMLElement) => {
-  animate(element, {
+  anime({
+    targets: element,
     filter: [
       'drop-shadow(0 0 5px rgba(212, 175, 55, 0.3))',
       'drop-shadow(0 0 10px rgba(212, 175, 55, 0.5))',
@@ -59,6 +62,6 @@ export const scriptureGlow = (element: HTMLElement) => {
     duration: 2000,
     direction: 'alternate',
     loop: true,
-    ease: 'inOutSine',
+    easing: 'easeInOutSine',
   });
 };

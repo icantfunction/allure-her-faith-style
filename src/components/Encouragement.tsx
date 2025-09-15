@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
-import { animate, stagger } from "animejs";
+import anime from "animejs/lib/anime.es.js";
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
 import { fadeInUp } from "@/utils/animations";
 
@@ -15,23 +15,25 @@ const Encouragement = () => {
   useEffect(() => {
     // Heart beating animation
     if (heartRef.current) {
-      animate(heartRef.current, {
+      anime({
+        targets: heartRef.current,
         scale: [1, 1.2, 1],
         duration: 1500,
         loop: true,
-        ease: 'inOutSine',
+        easing: 'easeInOutSine',
       });
     }
   }, []);
 
   const animateContentChange = () => {
     if (contentRef.current) {
-      animate(contentRef.current.children, {
+      anime({
+        targets: contentRef.current.children,
         opacity: [0, 1],
-        y: [20, 0],
+        translateY: [20, 0],
         duration: 600,
-        delay: stagger(100),
-        ease: 'outQuart',
+        delay: anime.stagger(100),
+        easing: 'easeOutQuart',
       });
     }
   };

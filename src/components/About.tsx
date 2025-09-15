@@ -1,10 +1,19 @@
+import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
+import { fadeInUp, staggeredFadeIn } from "@/utils/animations";
+
 const About = () => {
+  const sectionRef = useAnimeOnScroll(fadeInUp);
+  const cardsRef = useAnimeOnScroll({
+    ...staggeredFadeIn,
+    targets: '.about-card',
+  });
+
   return (
-    <section className="py-20 px-6">
-      <div className="max-w-6xl mx-auto">
+    <section ref={sectionRef} className="py-20 px-6 opacity-0">
+      <div ref={cardsRef} className="max-w-6xl mx-auto">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Story Content */}
-          <div className="space-y-8">
+          <div className="about-card space-y-8 opacity-0">
             <div>
               <h2 className="text-section-title mb-6 text-primary">
                 Our Story
@@ -32,7 +41,7 @@ const About = () => {
           </div>
           
           {/* Mission Statement */}
-          <div className="bg-gradient-to-br from-secondary to-accent rounded-2xl p-10">
+          <div className="about-card bg-gradient-to-br from-secondary to-accent rounded-2xl p-10 opacity-0">
             <h3 className="text-2xl font-heading mb-6 text-primary">
               Our Mission
             </h3>

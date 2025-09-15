@@ -1,10 +1,42 @@
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Heart } from "lucide-react";
-import { useState } from "react";
+import anime from "animejs/lib/anime.es.js";
+import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
+import { fadeInUp } from "@/utils/animations";
 
 const Encouragement = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const heartRef = useRef<SVGSVGElement>(null);
+  const sectionRef = useAnimeOnScroll(fadeInUp);
+
+  useEffect(() => {
+    // Heart beating animation
+    if (heartRef.current) {
+      anime({
+        targets: heartRef.current,
+        scale: [1, 1.2, 1],
+        duration: 1500,
+        loop: true,
+        easing: 'easeInOutSine',
+      });
+    }
+  }, []);
+
+  const animateContentChange = () => {
+    if (contentRef.current) {
+      anime({
+        targets: contentRef.current.children,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        duration: 600,
+        delay: anime.stagger(100),
+        easing: 'easeOutQuart',
+      });
+    }
+  };
   
   const encouragements = [
     {
@@ -28,20 +60,30 @@ const Encouragement = () => {
   ];
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % encouragements.length);
+    setCurrentSlide((prev) => {
+      const newSlide = (prev + 1) % encouragements.length;
+      setTimeout(animateContentChange, 100);
+      return newSlide;
+    });
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + encouragements.length) % encouragements.length);
+    setCurrentSlide((prev) => {
+      const newSlide = (prev - 1 + encouragements.length) % encouragements.length;
+      setTimeout(animateContentChange, 100);
+      return newSlide;
+    });
   };
 
   return (
-    <section className="py-20 px-6">
+    <section ref={sectionRef} className="py-20 px-6 opacity-0">
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-16">
-          <h2 className="text-section-title mb-6 text-primary">
-            Weekly Encouragement
-          </h2>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Heart ref={heartRef} className="w-6 h-6 text-accent fill-accent" />
+            <h2 className="text-section-title text-primary">Weekly Encouragement</h2>
+            <Heart className="w-6 h-6 text-accent fill-accent" />
+          </div>
           <p className="text-muted-foreground">
             Nourishment for your soul, one Scripture at a time
           </p>
@@ -83,7 +125,7 @@ const Encouragement = () => {
               </div>
               
               {/* Content */}
-              <div className="text-center space-y-6">
+              <div ref={contentRef} className="text-center space-y-6">
                 <div className="scripture-quote text-2xl">
                   {encouragements[currentSlide].scripture}
                 </div>

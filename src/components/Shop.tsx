@@ -1,8 +1,37 @@
 import { Button } from "@/components/ui/button";
 import product1 from "@/assets/product-1.jpg";
 import product2 from "@/assets/product-2.jpg";
+import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
+import { staggeredFadeIn } from "@/utils/animations";
+import { useRef } from "react";
+import anime from "animejs/lib/anime.es.js";
 
 const Shop = () => {
+  const productsRef = useAnimeOnScroll({
+    ...staggeredFadeIn,
+    targets: '.product-item',
+  });
+
+  const handleProductHover = (e: React.MouseEvent<HTMLDivElement>) => {
+    anime({
+      targets: e.currentTarget,
+      scale: 1.02,
+      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+      duration: 300,
+      easing: 'easeOutQuart',
+    });
+  };
+
+  const handleProductLeave = (e: React.MouseEvent<HTMLDivElement>) => {
+    anime({
+      targets: e.currentTarget,
+      scale: 1,
+      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+      duration: 300,
+      easing: 'easeOutQuart',
+    });
+  };
+
   const products = [
     {
       id: 1,
@@ -47,9 +76,14 @@ const Shop = () => {
           </p>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div ref={productsRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product) => (
-            <div key={product.id} className="product-card">
+            <div 
+              key={product.id} 
+              className="product-item product-card opacity-0"
+              onMouseEnter={handleProductHover}
+              onMouseLeave={handleProductLeave}
+            >
               <div className="aspect-[4/5] overflow-hidden">
                 <img
                   src={product.image}

@@ -1,8 +1,22 @@
 import { Card, CardContent } from "@/components/ui/card";
-import testimonialImage from "@/assets/testimonial-1.jpg";
 import { Star } from "lucide-react";
+import testimonialImage from "@/assets/testimonial-1.jpg";
+import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
+import { staggeredFadeIn } from "@/utils/animations";
 
 const Testimonials = () => {
+  const sectionRef = useAnimeOnScroll({
+    opacity: [0, 1],
+    translateY: [30, 0],
+    duration: 800,
+    easing: 'easeOutQuart',
+  });
+  
+  const cardsRef = useAnimeOnScroll({
+    ...staggeredFadeIn,
+    targets: '.testimonial-card',
+  });
+
   const testimonials = [
     {
       name: "Sarah M.",
@@ -25,8 +39,8 @@ const Testimonials = () => {
   ];
 
   return (
-    <section className="py-20 px-6 bg-gradient-subtle">
-      <div className="max-w-6xl mx-auto">
+    <section ref={sectionRef} className="py-20 px-6 bg-gradient-subtle opacity-0">
+      <div ref={cardsRef} className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-section-title mb-6 text-primary">
             How You'll Feel
@@ -39,7 +53,7 @@ const Testimonials = () => {
         
         <div className="grid md:grid-cols-3 gap-8">
           {testimonials.map((testimonial, index) => (
-            <Card key={index} className="bg-background border-0 shadow-elegant">
+            <Card key={index} className="testimonial-card bg-background border-0 shadow-elegant opacity-0">
               <CardContent className="p-8 text-center">
                 <div className="mb-6">
                   <img

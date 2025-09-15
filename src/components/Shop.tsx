@@ -15,8 +15,8 @@ const Shop = () => {
   const handleProductHover = (e: React.MouseEvent<HTMLDivElement>) => {
     animate(e.currentTarget, {
       scale: 1.02,
-      filter: 'drop-shadow(0 10px 40px rgba(0,0,0,0.1))',
-      duration: 300,
+      filter: 'drop-shadow(0 12px 48px rgba(0,0,0,0.15))',
+      duration: 400,
       easing: 'easeOutQuart',
     });
   };
@@ -24,8 +24,8 @@ const Shop = () => {
   const handleProductLeave = (e: React.MouseEvent<HTMLDivElement>) => {
     animate(e.currentTarget, {
       scale: 1,
-      filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.05))',
-      duration: 300,
+      filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))',
+      duration: 400,
       easing: 'easeOutQuart',
     });
   };
@@ -79,6 +79,7 @@ const Shop = () => {
             <div 
               key={product.id} 
               className="product-item product-card opacity-0"
+              style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))' }}
               onMouseEnter={handleProductHover}
               onMouseLeave={handleProductLeave}
             >

@@ -1,42 +1,74 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Allure Her Luxury Fashion Design System - Faith Meets Fashion */
 
 @layer base {
   :root {
+    /* Luxury Neutral Color Palette */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 30 8% 20%;
 
+    /* Card & Surface Colors */
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 30 8% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 30 8% 20%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary Brand Colors - Warm Beige & Taupe */
+    --primary: 30 15% 45%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 35 25% 85%;
+    --primary-dark: 25 12% 35%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Secondary - Soft Browns */
+    --secondary: 35 20% 90%;
+    --secondary-foreground: 30 8% 20%;
+    --secondary-warm: 32 18% 75%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* Muted Tones */
+    --muted: 40 15% 95%;
+    --muted-foreground: 30 6% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Accent - Gold touches */
+    --accent: 45 35% 80%;
+    --accent-foreground: 30 8% 20%;
+    --accent-gold: 45 60% 70%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Utility Colors */
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 35 15% 90%;
+    --input: 35 15% 92%;
+    --ring: 30 15% 45%;
 
-    --radius: 0.5rem;
+    /* Luxury Design Tokens */
+    --radius: 0.375rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+
+    /* Elegant Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary-light)), hsl(var(--secondary-warm)));
+    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
+    --gradient-warm: linear-gradient(45deg, hsl(var(--accent)) 0%, hsl(var(--primary-light)) 100%);
+
+    /* Luxury Shadows */
+    --shadow-elegant: 0 4px 20px -2px hsl(var(--primary) / 0.08);
+    --shadow-soft: 0 2px 8px -1px hsl(var(--primary) / 0.06);
+    --shadow-luxury: 0 8px 32px -4px hsl(var(--primary) / 0.12);
+
+    /* Typography Scale */
+    --font-heading: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Smooth Transitions */
+    --transition-elegant: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --transition-soft: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
 
@@ -94,12 +126,88 @@ All colors MUST be HSL.
   }
 }
 
+}
+
 @layer base {
   * {
     @apply border-border;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  /* Hero Button Variants */
+  .btn-luxury {
+    @apply bg-primary text-primary-foreground px-8 py-4 rounded-lg font-medium tracking-wide transition-elegant hover:bg-primary-dark hover:shadow-elegant;
+  }
+
+  .btn-outline-luxury {
+    @apply border-2 border-primary text-primary bg-transparent px-8 py-4 rounded-lg font-medium tracking-wide transition-elegant hover:bg-primary hover:text-primary-foreground hover:shadow-soft;
+  }
+
+  /* Scripture Quote Styling */
+  .scripture-quote {
+    @apply font-heading text-lg italic text-muted-foreground relative;
+  }
+
+  .scripture-quote::before {
+    content: '"';
+    @apply absolute -left-4 -top-2 text-3xl text-accent-gold opacity-60;
+  }
+
+  .scripture-quote::after {
+    content: '"';
+    @apply absolute -right-4 -bottom-2 text-3xl text-accent-gold opacity-60;
+  }
+
+  /* Product Card Hover Effects */
+  .product-card {
+    @apply bg-card rounded-lg overflow-hidden shadow-soft transition-elegant hover:shadow-luxury hover:scale-[1.02];
+  }
+
+  /* Elegant Section Dividers */
+  .section-divider {
+    @apply w-24 h-px bg-gradient-to-r from-transparent via-accent-gold to-transparent mx-auto my-12;
+  }
+
+  /* Typography Utilities */
+  .text-hero {
+    @apply text-5xl md:text-6xl lg:text-7xl font-heading font-light tracking-tight;
+  }
+
+  .text-subhero {
+    @apply text-xl md:text-2xl font-body font-light text-muted-foreground;
+  }
+
+  .text-section-title {
+    @apply text-3xl md:text-4xl font-heading font-medium tracking-tight;
+  }
+
+  /* Animation Classes */
+  .fade-in-up {
+    animation: fadeInUp 0.8s ease-out forwards;
+  }
+
+  .fade-in-delayed {
+    animation: fadeInUp 0.8s ease-out 0.3s forwards;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

@@ -1,95 +1,130 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-image.jpg";
 import { useEffect, useRef } from "react";
-import { animate } from "animejs";
-import { breathingAnimation, floatingElements, scriptureGlow } from "@/utils/animations";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 const Hero = () => {
+  const heroRef = useRef<HTMLElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const taglineRef = useRef<HTMLParagraphElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
+  const parallaxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Respect user's motion preferences
+    // Check for reduced motion preference
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
-    // Hero entrance animation sequence with reduced motion support
-    if (titleRef.current) {
-      animate(titleRef.current, {
-        opacity: [0, 1],
-        translateY: prefersReducedMotion ? [10, 0] : [50, 0],
-        scale: prefersReducedMotion ? [0.95, 1] : [0.8, 1],
-        duration: prefersReducedMotion ? 600 : 1200,
-        easing: 'easeOutExpo',
-      });
-    }
-    
-    setTimeout(() => {
-      if (taglineRef.current) {
-        animate(taglineRef.current, {
-          opacity: [0, 1],
-          translateY: prefersReducedMotion ? [5, 0] : [30, 0],
-          duration: prefersReducedMotion ? 400 : 800,
-          easing: 'easeOutQuart',
-        });
-      }
-    }, prefersReducedMotion ? 200 : 600);
-    
-    setTimeout(() => {
-      if (buttonRef.current) {
-        animate(buttonRef.current, {
-          opacity: [0, 1],
-          translateY: prefersReducedMotion ? [5, 0] : [20, 0],
-          scale: prefersReducedMotion ? [0.98, 1] : [0.9, 1],
-          duration: prefersReducedMotion ? 300 : 600,
-          easing: 'easeOutBack',
-        });
-      }
-    }, prefersReducedMotion ? 400 : 1000);
-
-    // Continuous animations - only if motion is allowed
     if (!prefersReducedMotion) {
-      setTimeout(() => {
-        if (buttonRef.current) breathingAnimation(buttonRef.current);
-        if (overlayRef.current) floatingElements(overlayRef.current);
-        if (taglineRef.current) {
-          setTimeout(() => scriptureGlow(taglineRef.current!), 2000);
-        }
-      }, 1600);
+      // Register ScrollTrigger plugin
+      gsap.registerPlugin(ScrollTrigger);
+
+      // Set initial states for reveal elements
+      gsap.set([titleRef.current, taglineRef.current, descriptionRef.current, buttonRef.current], {
+        y: 20,
+        opacity: 0
+      });
+
+      // Text reveal animations with staggered timing
+      if (titleRef.current) {
+        gsap.to(titleRef.current, {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          ease: "power2.out",
+          delay: 0.3
+        });
+      }
+
+      if (taglineRef.current) {
+        gsap.to(taglineRef.current, {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          ease: "power2.out",
+          delay: 0.6
+        });
+      }
+
+      if (descriptionRef.current) {
+        gsap.to(descriptionRef.current, {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          ease: "power2.out",
+          delay: 0.9
+        });
+      }
+
+      if (buttonRef.current) {
+        gsap.to(buttonRef.current, {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          ease: "power2.out",
+          delay: 1.2
+        });
+      }
+
+      // Subtle parallax effect on background
+      if (parallaxRef.current && heroRef.current) {
+        gsap.to(parallaxRef.current, {
+          yPercent: 8,
+          ease: "none",
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: true
+          }
+        });
+      }
+
+      // Cleanup function
+      return () => {
+        ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+      };
+    } else {
+      // Fallback for reduced motion - simple fade in
+      gsap.set([titleRef.current, taglineRef.current, descriptionRef.current, buttonRef.current], {
+        opacity: 1
+      });
     }
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background Image with dominant color fallback */}
+    <section ref={heroRef} className="hero gsap-hero relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Background Image with parallax effect */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        ref={parallaxRef}
+        className="hero__media absolute inset-0 bg-cover bg-center bg-no-repeat"
+        data-parallax
         style={{
           backgroundImage: `url(${heroImage})`,
           backgroundColor: 'hsl(var(--primary-light))', // Dominant color fallback
         }}
       >
-        {/* Enhanced gradient scrim for better text legibility */}
-        <div ref={overlayRef} className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40"></div>
+        {/* Enhanced gradient scrim */}
+        <div className="hero__scrim absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40"></div>
       </div>
       
       {/* Content */}
-      <div className="relative z-10 text-center text-white px-6 max-w-4xl mx-auto">
-        <h1 ref={titleRef} className="text-hero mb-6 opacity-0">
+      <div className="hero__inner relative z-10 text-center text-white px-6 max-w-4xl mx-auto">
+        <h1 ref={titleRef} className="reveal-up text-hero mb-6 opacity-0">
           Allure Her
         </h1>
-        <p ref={taglineRef} className="text-subhero mb-4 opacity-0">
+        <p ref={taglineRef} className="reveal-up d2 text-subhero mb-4 opacity-0">
           Loved. Seen. Enough.
         </p>
-        <p className="text-lg mb-8 font-light opacity-90">
+        <p ref={descriptionRef} className="reveal-up d3 text-lg mb-8 font-light opacity-90 opacity-0">
           Where faith meets fashion in timeless elegance
         </p>
         
         <div>
           <Button 
             ref={buttonRef} 
-            className="btn-luxury text-lg px-10 py-5 opacity-0"
+            className="hero__cta reveal-up d4 btn-luxury text-lg px-10 py-5 opacity-0"
             aria-label="Shop the Collection - Discover our luxury Christian fashion"
           >
             Shop the Collection

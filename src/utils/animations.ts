@@ -1,4 +1,4 @@
-import anime from 'animejs/lib/anime.es.js';
+import { animate, stagger } from 'animejs';
 
 export const fadeInUp = {
   opacity: [0, 1],
@@ -11,7 +11,7 @@ export const staggeredFadeIn = {
   opacity: [0, 1],
   translateY: [20, 0],
   duration: 600,
-  delay: anime.stagger(100),
+  delay: stagger(100),
   easing: 'easeOutQuart',
 };
 
@@ -26,13 +26,12 @@ export const textReveal = {
   opacity: [0, 1],
   translateY: [50, 0],
   duration: 1000,
-  delay: anime.stagger(50, { from: 300 }),
+  delay: stagger(50, { from: 300 }),
   easing: 'easeOutExpo',
 };
 
 export const breathingAnimation = (element: HTMLElement) => {
-  anime({
-    targets: element,
+  animate(element, {
     scale: [1, 1.02, 1],
     duration: 3000,
     loop: true,
@@ -41,8 +40,7 @@ export const breathingAnimation = (element: HTMLElement) => {
 };
 
 export const floatingElements = (element: HTMLElement) => {
-  anime({
-    targets: element,
+  animate(element, {
     translateY: [-5, 5],
     duration: 4000,
     direction: 'alternate',
@@ -52,8 +50,7 @@ export const floatingElements = (element: HTMLElement) => {
 };
 
 export const scriptureGlow = (element: HTMLElement) => {
-  anime({
-    targets: element,
+  animate(element, {
     filter: [
       'drop-shadow(0 0 5px rgba(212, 175, 55, 0.3))',
       'drop-shadow(0 0 10px rgba(212, 175, 55, 0.5))',

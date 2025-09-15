@@ -144,7 +144,7 @@
 @layer components {
   /* Hero Button Variants */
   .btn-luxury {
-    @apply bg-primary text-primary-foreground px-8 py-4 rounded-lg font-medium tracking-wide transition-elegant hover:bg-primary-dark hover:shadow-elegant;
+    @apply bg-primary text-primary-foreground px-8 py-4 rounded-lg font-medium tracking-wide transition-elegant hover:bg-primary-dark hover:shadow-elegant transform hover:scale-[1.02] focus:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-gold focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98];
   }
 
   .btn-outline-luxury {

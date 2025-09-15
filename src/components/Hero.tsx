@@ -25,8 +25,7 @@ const Hero = () => {
       return;
     }
 
-    const animeMod = await import("animejs");
-    const anime: any = (animeMod as any).default || (animeMod as any);
+    const anime = (await import("animejs")) as any;
 
     // Animate the button out
     if (ctaRef.current) {
@@ -43,8 +42,7 @@ const Hero = () => {
     // Animate the form in on next tick
     setTimeout(async () => {
       if (formRef.current) {
-        const animeMod = await import("animejs");
-        const anime: any = (animeMod as any).default || (animeMod as any);
+        const anime = (await import("animejs")) as any;
         anime({
           targets: formRef.current,
           scale: [0.9, 1],
@@ -96,8 +94,7 @@ const Hero = () => {
       });
 
       if (!prefersReducedMotion && formRef.current) {
-        const animeMod = await import("animejs");
-        const anime: any = (animeMod as any).default || (animeMod as any);
+        const anime = (await import("animejs")) as any;
         await anime({
           targets: formRef.current,
           scale: [1, 1.05, 1],

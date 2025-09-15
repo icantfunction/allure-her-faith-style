@@ -4,7 +4,7 @@ import heroImage from "@/assets/hero-image.jpg";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import anime from "animejs/lib/anime.es.js";
+
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -19,36 +19,42 @@ const Hero = () => {
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, 60]); // subtle parallax
 
-  const handleCtaClick = () => {
+  const handleCtaClick = async () => {
     if (prefersReducedMotion) {
       setShowEmailForm(true);
       return;
     }
 
+    const animeMod = await import("animejs");
+    const anime: any = (animeMod as any).default || (animeMod as any);
+
     // Animate the button out
-    anime({
-      targets: ctaRef.current,
-      scale: [1, 0.95],
-      opacity: [1, 0],
-      duration: 300,
-      easing: 'easeInOutQuart',
-      complete: () => {
-        setShowEmailForm(true);
-        // Animate the form in
-        setTimeout(() => {
-          if (formRef.current) {
-            anime({
-              targets: formRef.current,
-              scale: [0.9, 1],
-              opacity: [0, 1],
-              translateY: [20, 0],
-              duration: 500,
-              easing: 'easeOutQuart'
-            });
-          }
-        }, 50);
+    if (ctaRef.current) {
+      await anime({
+        targets: ctaRef.current,
+        scale: [1, 0.95],
+        opacity: [1, 0],
+        duration: 300,
+        easing: 'easeInOutQuart',
+      }).finished;
+    }
+
+    setShowEmailForm(true);
+    // Animate the form in on next tick
+    setTimeout(async () => {
+      if (formRef.current) {
+        const animeMod = await import("animejs");
+        const anime: any = (animeMod as any).default || (animeMod as any);
+        anime({
+          targets: formRef.current,
+          scale: [0.9, 1],
+          opacity: [0, 1],
+          translateY: [20, 0],
+          duration: 500,
+          easing: 'easeOutQuart'
+        });
       }
-    });
+    }, 50);
   };
   useEffect(() => {
     // Check for reduced motion preference
@@ -89,14 +95,15 @@ const Hero = () => {
         }),
       });
 
-      // Success animation
       if (!prefersReducedMotion && formRef.current) {
-        anime({
+        const animeMod = await import("animejs");
+        const anime: any = (animeMod as any).default || (animeMod as any);
+        await anime({
           targets: formRef.current,
           scale: [1, 1.05, 1],
           duration: 600,
           easing: 'easeInOutQuart'
-        });
+        }).finished;
       }
 
       toast({

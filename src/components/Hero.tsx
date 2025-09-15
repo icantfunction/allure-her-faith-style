@@ -2,8 +2,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import heroImage from "@/assets/hero-image.jpg";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import anime from "animejs/lib/anime.es.js";
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -11,11 +12,44 @@ const Hero = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const ctaRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   
   // Parallax scroll effect
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, 60]); // subtle parallax
 
+  const handleCtaClick = () => {
+    if (prefersReducedMotion) {
+      setShowEmailForm(true);
+      return;
+    }
+
+    // Animate the button out
+    anime({
+      targets: ctaRef.current,
+      scale: [1, 0.95],
+      opacity: [1, 0],
+      duration: 300,
+      easing: 'easeInOutQuart',
+      complete: () => {
+        setShowEmailForm(true);
+        // Animate the form in
+        setTimeout(() => {
+          if (formRef.current) {
+            anime({
+              targets: formRef.current,
+              scale: [0.9, 1],
+              opacity: [0, 1],
+              translateY: [20, 0],
+              duration: 500,
+              easing: 'easeOutQuart'
+            });
+          }
+        }, 50);
+      }
+    });
+  };
   useEffect(() => {
     // Check for reduced motion preference
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -55,13 +89,28 @@ const Hero = () => {
         }),
       });
 
+      // Success animation
+      if (!prefersReducedMotion && formRef.current) {
+        anime({
+          targets: formRef.current,
+          scale: [1, 1.05, 1],
+          duration: 600,
+          easing: 'easeInOutQuart'
+        });
+      }
+
       toast({
         title: "Welcome to the insider list!",
         description: "You'll be the first to know when we launch.",
       });
       
       setEmail("");
-      setShowEmailForm(false);
+      
+      // Reset to button after successful submission
+      setTimeout(() => {
+        setShowEmailForm(false);
+      }, 1500);
+      
     } catch (error) {
       console.error("Error submitting email:", error);
       toast({
@@ -125,15 +174,22 @@ const Hero = () => {
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
             >
               {!showEmailForm ? (
-                <Button 
-                  onClick={() => setShowEmailForm(true)}
-                  className="hero-cta"
-                  aria-label="Be an Insider - Get early access to our luxury Christian fashion"
-                >
-                  Be an Insider
-                </Button>
+                <div ref={ctaRef}>
+                  <Button 
+                    onClick={handleCtaClick}
+                    className="hero-cta"
+                    aria-label="Be an Insider - Get early access to our luxury Christian fashion"
+                  >
+                    Be an Insider
+                  </Button>
+                </div>
               ) : (
-                <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto md:mx-0">
+                <form 
+                  ref={formRef}
+                  onSubmit={handleEmailSubmit} 
+                  className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto md:mx-0"
+                  style={{ opacity: 0, transform: 'scale(0.9) translateY(20px)' }}
+                >
                   <Input
                     type="email"
                     placeholder="Enter your email"

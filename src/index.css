@@ -30,6 +30,13 @@
     --secondary-foreground: 30 8% 20%;
     --secondary-warm: 32 18% 75%;
 
+    /* Luxury color system */
+    --taupe: 31 15% 55%; /* #8D7765 */
+    --taupe-dark: 31 15% 48%; /* #7C6859 */
+    --light-beige: 33 30% 91%; /* #E9DFD5 */
+    --warm-sand: 33 30% 81%; /* #D7C2B4 */
+    --ink: 0 0% 10%; /* #1A1A1A */
+
     /* Muted Tones */
     --muted: 40 15% 95%;
     --muted-foreground: 30 6% 55%;
@@ -178,11 +185,29 @@
 
   /* Typography Utilities */
   .text-hero {
-    @apply text-5xl md:text-6xl lg:text-7xl font-heading font-light tracking-tight;
+    @apply font-heading font-semibold leading-none tracking-tight text-white;
+    font-size: clamp(2.25rem, 5vw, 5rem); /* 36-80px responsive */
+    letter-spacing: -0.5px;
+    line-height: 1.05;
   }
 
   .text-subhero {
-    @apply text-xl md:text-2xl font-body font-light text-muted-foreground;
+    @apply font-body font-normal leading-relaxed;
+    font-size: clamp(1rem, 2vw, 1.375rem); /* 16-22px responsive */
+    color: rgba(255, 255, 255, 0.92);
+    max-width: 42ch;
+  }
+
+  .hero-cta {
+    @apply inline-block font-medium text-white rounded-2xl transition-all duration-200 ease-out;
+    background-color: hsl(var(--taupe));
+    padding: 0.9rem 1.25rem;
+    border-radius: 16px;
+  }
+
+  .hero-cta:hover {
+    background-color: hsl(var(--taupe-dark));
+    transform: translateY(-1px);
   }
 
   .text-section-title {

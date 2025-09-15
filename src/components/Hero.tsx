@@ -22,63 +22,64 @@ const Hero = () => {
   }, []);
 
   return (
-    <header className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <header className="relative overflow-hidden" style={{ minHeight: '88vh' }}>
       {/* Background Image with parallax effect */}
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
           backgroundImage: `url(${heroImage})`,
-          backgroundColor: 'hsl(var(--primary-light))', // Dominant color fallback
+          backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
+          backgroundPosition: 'right 30% center', // Position away from text
         }}
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        className="absolute inset-0 bg-cover bg-no-repeat"
         aria-hidden="true"
       >
-        {/* Enhanced gradient scrim */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/20 to-black/40"></div>
+        {/* Enhanced gradient scrim for luxury contrast */}
+        <div 
+          className="absolute inset-0 mix-blend-multiply"
+          style={{
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.28), rgba(0,0,0,0.45))'
+          }}
+        ></div>
       </motion.div>
       
-      {/* Content */}
-      <div className="relative z-10 text-center text-white px-6 max-w-4xl mx-auto">
-        <motion.h1
-          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut", delay: 0.3 }}
-          className="text-hero mb-6"
-        >
-          Allure Her
-        </motion.h1>
-        
-        <motion.p
-          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut", delay: 0.6 }}
-          className="text-subhero mb-4"
-        >
-          Loved. Seen. Enough.
-        </motion.p>
-        
-        <motion.p
-          initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, ease: "easeOut", delay: 0.9 }}
-          className="text-lg mb-8 font-light opacity-90"
-        >
-          Where faith meets fashion in timeless elegance
-        </motion.p>
-        
-        <div>
-          <motion.div
-            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: "easeOut", delay: 1.2 }}
-          >
-            <Button 
-              className="btn-luxury text-lg px-10 py-5"
-              aria-label="Shop the Collection - Discover our luxury Christian fashion"
+      {/* Content Container */}
+      <div className="relative z-10 flex items-center px-6" style={{ minHeight: '88vh' }}>
+        <div className="w-full max-w-6xl mx-auto">
+          {/* Content - Left aligned on desktop, center on mobile */}
+          <div className="text-center md:text-left text-white max-w-4xl">
+            <motion.h1
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
+              className="text-hero mb-6"
             >
-              Shop the Collection
-            </Button>
-          </motion.div>
+              Allure Her
+            </motion.h1>
+            
+            <motion.p
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: "easeOut", delay: 0.45 }}
+              className="text-subhero mb-8 mx-auto md:mx-0"
+            >
+              Where faith meets fashion in timeless elegance
+            </motion.p>
+            
+            <motion.div
+              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
+            >
+              <a 
+                href="#shop"
+                className="hero-cta"
+                aria-label="Shop the Collection - Discover our luxury Christian fashion"
+              >
+                Shop the Collection
+              </a>
+            </motion.div>
+          </div>
         </div>
       </div>
       

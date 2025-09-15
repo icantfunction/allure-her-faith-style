@@ -65,6 +65,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        taupe: {
+          DEFAULT: "hsl(var(--taupe))",
+          dark: "hsl(var(--taupe-dark))",
+        },
+        "light-beige": "hsl(var(--light-beige))",
+        "warm-sand": "hsl(var(--warm-sand))",
+        ink: "hsl(var(--ink))",
       },
       borderRadius: {
         lg: "var(--radius)",

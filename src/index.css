@@ -235,6 +235,39 @@
   .bg-gradient-warm { background: var(--gradient-warm); }
 }
 
+/* Luxury Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--light-beige) / 0.3);
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--taupe));
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--taupe-dark));
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: hsl(var(--light-beige) / 0.3);
+}
+
+/* Firefox scrollbar styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--taupe)) hsl(var(--light-beige) / 0.3);
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

@@ -1,10 +1,16 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import heroImage from "@/assets/hero-image.jpg";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [email, setEmail] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   
   // Parallax scroll effect
   const { scrollYProgress } = useScroll();
@@ -20,6 +26,53 @@ const Hero = () => {
     
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "Error",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("https://hooks.zapier.com/hooks/catch/23791564/um92syy/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        mode: "no-cors",
+        body: JSON.stringify({
+          email: email,
+          timestamp: new Date().toISOString(),
+          source: "allure_her_insider",
+        }),
+      });
+
+      toast({
+        title: "Welcome to the insider list!",
+        description: "You'll be the first to know when we launch.",
+      });
+      
+      setEmail("");
+      setShowEmailForm(false);
+    } catch (error) {
+      console.error("Error submitting email:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <header className="relative overflow-hidden" style={{ minHeight: '88vh' }}>
@@ -71,13 +124,33 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
             >
-              <a 
-                href="#shop"
-                className="hero-cta"
-                aria-label="Shop the Collection - Discover our luxury Christian fashion"
-              >
-                Shop the Collection
-              </a>
+              {!showEmailForm ? (
+                <Button 
+                  onClick={() => setShowEmailForm(true)}
+                  className="hero-cta"
+                  aria-label="Be an Insider - Get early access to our luxury Christian fashion"
+                >
+                  Be an Insider
+                </Button>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto md:mx-0">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 h-12 bg-white/90 border-white/30 focus:border-white text-foreground placeholder:text-muted-foreground"
+                    disabled={isLoading}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="hero-cta h-12 px-8"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Joining..." : "Join"}
+                  </Button>
+                </form>
+              )}
             </motion.div>
           </div>
         </div>

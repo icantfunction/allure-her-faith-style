@@ -4,7 +4,7 @@ import product2 from "@/assets/product-2.jpg";
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
 import { staggeredFadeIn } from "@/utils/animations";
 import { useRef } from "react";
-import anime from "animejs/lib/anime.es.js";
+import { animate } from "animejs";
 
 const Shop = () => {
   const productsRef = useAnimeOnScroll({
@@ -13,22 +13,20 @@ const Shop = () => {
   });
 
   const handleProductHover = (e: React.MouseEvent<HTMLDivElement>) => {
-    anime({
-      targets: e.currentTarget,
+    animate(e.currentTarget, {
       scale: 1.02,
-      boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+      filter: 'drop-shadow(0 10px 40px rgba(0,0,0,0.1))',
       duration: 300,
-      easing: 'easeOutQuart',
+      ease: 'outQuart',
     });
   };
 
   const handleProductLeave = (e: React.MouseEvent<HTMLDivElement>) => {
-    anime({
-      targets: e.currentTarget,
+    animate(e.currentTarget, {
       scale: 1,
-      boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+      filter: 'drop-shadow(0 4px 20px rgba(0,0,0,0.05))',
       duration: 300,
-      easing: 'easeOutQuart',
+      ease: 'outQuart',
     });
   };
 

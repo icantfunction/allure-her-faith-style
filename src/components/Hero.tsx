@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-image.jpg";
 import { useEffect, useRef } from "react";
-import anime from "animejs/lib/anime.es.js";
+import { animate, stagger } from "animejs";
 import { breathingAnimation, floatingElements, scriptureGlow } from "@/utils/animations";
 
 const Hero = () => {
@@ -11,44 +11,48 @@ const Hero = () => {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Hero entrance animation
-    const timeline = anime.timeline({
-      autoplay: false,
-    });
-
-    timeline
-      .add({
-        targets: titleRef.current,
+    // Hero entrance animation sequence with delays
+    if (titleRef.current) {
+      animate(titleRef.current, {
         opacity: [0, 1],
-        translateY: [50, 0],
+        y: [50, 0],
         scale: [0.8, 1],
         duration: 1200,
-        easing: 'easeOutExpo',
-      })
-      .add({
-        targets: taglineRef.current,
-        opacity: [0, 1],
-        translateY: [30, 0],
-        duration: 800,
-        easing: 'easeOutQuart',
-      }, '-=600')
-      .add({
-        targets: buttonRef.current,
-        opacity: [0, 1],
-        translateY: [20, 0],
-        scale: [0.9, 1],
-        duration: 600,
-        easing: 'easeOutBack',
-      }, '-=400');
-
-    timeline.play();
+        ease: 'outExpo',
+      });
+    }
+    
+    setTimeout(() => {
+      if (taglineRef.current) {
+        animate(taglineRef.current, {
+          opacity: [0, 1],
+          y: [30, 0],
+          duration: 800,
+          ease: 'outQuart',
+        });
+      }
+    }, 600);
+    
+    setTimeout(() => {
+      if (buttonRef.current) {
+        animate(buttonRef.current, {
+          opacity: [0, 1],
+          y: [20, 0],
+          scale: [0.9, 1],
+          duration: 600,
+          ease: 'outBack',
+        });
+      }
+    }, 1000);
 
     // Continuous animations
-    if (buttonRef.current) breathingAnimation(buttonRef.current);
-    if (overlayRef.current) floatingElements(overlayRef.current);
-    if (taglineRef.current) {
-      setTimeout(() => scriptureGlow(taglineRef.current!), 2000);
-    }
+    setTimeout(() => {
+      if (buttonRef.current) breathingAnimation(buttonRef.current);
+      if (overlayRef.current) floatingElements(overlayRef.current);
+      if (taglineRef.current) {
+        setTimeout(() => scriptureGlow(taglineRef.current!), 2000);
+      }
+    }, 1600);
   }, []);
 
   return (

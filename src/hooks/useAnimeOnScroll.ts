@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
-import anime from 'animejs/lib/anime.es.js';
+import { animate } from 'animejs';
 
 export const useAnimeOnScroll = <T extends HTMLElement = HTMLDivElement>(
-  animationConfig: anime.AnimeParams,
+  animationConfig: any,
   options: { threshold?: number; triggerOnce?: boolean } = {}
 ) => {
   const elementRef = useRef<T>(null);
@@ -16,10 +16,7 @@ export const useAnimeOnScroll = <T extends HTMLElement = HTMLDivElement>(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            anime({
-              targets: element,
-              ...animationConfig,
-            });
+            animate(element, animationConfig);
             
             if (triggerOnce) {
               observer.unobserve(element);
@@ -38,24 +35,17 @@ export const useAnimeOnScroll = <T extends HTMLElement = HTMLDivElement>(
   return elementRef;
 };
 
-export const useAnimeSequence = <T extends HTMLElement = HTMLDivElement>(sequence: anime.AnimeParams[]) => {
+export const useAnimeSequence = <T extends HTMLElement = HTMLDivElement>(sequence: any[]) => {
   const elementRef = useRef<T>(null);
 
   const playSequence = () => {
     if (!elementRef.current) return;
 
-    const timeline = anime.timeline({
-      autoplay: false,
-    });
-
     sequence.forEach((config, index) => {
-      timeline.add({
-        targets: elementRef.current,
-        ...config,
-      }, index === 0 ? 0 : `+=${config.delay || 0}`);
+      setTimeout(() => {
+        animate(elementRef.current, config);
+      }, index * (config.delay || 100));
     });
-
-    timeline.play();
   };
 
   return { elementRef, playSequence };

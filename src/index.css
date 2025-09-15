@@ -126,7 +126,6 @@
   }
 }
 
-}
 
 @layer base {
   * {
@@ -199,6 +198,16 @@
     animation: fadeInUp 0.8s ease-out 0.3s forwards;
     opacity: 0;
   }
+}
+
+@layer utilities {
+  .transition-elegant { transition: var(--transition-elegant); }
+  .transition-soft { transition: var(--transition-soft); }
+  .shadow-elegant { box-shadow: var(--shadow-elegant); }
+  .shadow-soft { box-shadow: var(--shadow-soft); }
+  .shadow-luxury { box-shadow: var(--shadow-luxury); }
+  .bg-gradient-subtle { background: var(--gradient-subtle); }
+  .bg-gradient-warm { background: var(--gradient-warm); }
 }
 
 @keyframes fadeInUp {

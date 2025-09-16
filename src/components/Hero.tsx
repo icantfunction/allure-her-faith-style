@@ -82,7 +82,8 @@ const Hero = () => {
           y: prefersReducedMotion ? 0 : y,
           backgroundImage: `url(${heroImage})`,
           backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
-          backgroundPosition: 'right 30% center', // Position away from text
+          backgroundPosition: 'center top', // Show top 50% of the image
+          backgroundSize: 'cover',
         }}
         className="absolute inset-0 bg-cover bg-no-repeat"
         aria-hidden="true"

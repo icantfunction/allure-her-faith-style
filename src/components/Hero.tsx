@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import heroImage from "@/assets/hero-image.jpg";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -80,7 +79,7 @@ const Hero = () => {
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
-          backgroundImage: `url(${heroImage})`,
+          backgroundImage: `url(https://media.discordapp.net/attachments/1231979221866381466/1417532081227038851/IMG_4624.jpg?ex=68cad320&is=68c981a0&hm=75dca682d12a3d5cae777e41150dd2cef887ea36470c4c96db7f7e6691dd1512&=&format=webp&width=1030&height=881)`,
           backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
           backgroundPosition: 'center top', // Show top 50% of the image
           backgroundSize: 'cover',

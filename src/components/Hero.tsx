@@ -79,7 +79,7 @@ const Hero = () => {
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
-          backgroundImage: `url(https://media.discordapp.net/attachments/1231979221866381466/1417532081227038851/IMG_4624.jpg?ex=68cad320&is=68c981a0&hm=75dca682d12a3d5cae777e41150dd2cef887ea36470c4c96db7f7e6691dd1512&=&format=webp&width=1030&height=881)`,
+          backgroundImage: `url(https://media.discordapp.net/attachments/1231979221866381466/1417532290266955887/IMG_7211.jpg?ex=68cad352&is=68c981d2&hm=3c258510caa8a667c5699b0d6d7bb7f87e00b6c7d14a90a463e56edc6ffa95da&=&format=webp&width=661&height=881)`,
           backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
           backgroundPosition: 'center top', // Show top 50% of the image
           backgroundSize: 'cover',
@@ -91,7 +91,7 @@ const Hero = () => {
         <div 
           className="absolute inset-0 mix-blend-multiply"
           style={{
-            background: 'linear-gradient(to bottom, rgba(0,0,0,0.28), rgba(0,0,0,0.45))'
+            background: 'linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.25))'
           }}
         ></div>
       </motion.div>

@@ -100,13 +100,9 @@ const Newsletter = () => {
               <h3 className="font-heading text-xl text-foreground">
                 Get in Touch
               </h3>
-              <div className="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-8 text-muted-foreground">
-                <a href="mailto:hello@allureher.com" className="hover:text-primary transition-colors">
-                  hello@allureher.com
-                </a>
-                <span className="hidden sm:block text-accent-gold">•</span>
-                <a href="tel:+1234567890" className="hover:text-primary transition-colors">
-                  (123) 456-7890
+              <div className="flex justify-center text-muted-foreground">
+                <a href="mailto:info@shopallureher.com" className="hover:text-primary transition-colors">
+                  info@shopallureher.com
                 </a>
               </div>
             </div>

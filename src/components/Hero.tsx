@@ -79,7 +79,7 @@ const Hero = () => {
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
-          backgroundImage: `url(https://media.discordapp.net/attachments/1231979221866381466/1417532081227038851/IMG_4624.jpg?ex=68cad320&is=68c981a0&hm=75dca682d12a3d5cae777e41150dd2cef887ea36470c4c96db7f7e6691dd1512&=&format=webp&width=1030&height=881)`,
+          backgroundImage: `url(https://media.discordapp.net/attachments/1231979221866381466/1417884637296066763/Screenshot_2025-09-16_at_4.27.52_AM.png?ex=68cc1b78&is=68cac9f8&hm=25e25d97a1fda415e9abd82df8acb0ffd7c8f14dc1aaa826c5e50dce607afda2&=&format=webp&quality=lossless&width=1942&height=1328)`,
           backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
           backgroundPosition: 'center top', // Show top 50% of the image
           backgroundSize: 'cover',

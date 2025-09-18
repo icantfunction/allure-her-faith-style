@@ -114,7 +114,7 @@ const Hero = () => {
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.45 }}
-              className="text-subhero mb-8 mx-auto md:mx-0"
+              className="text-subhero mb-8 mx-auto"
             >
               Where faith meets fashion in timeless elegance
             </motion.p>

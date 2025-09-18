@@ -100,7 +100,7 @@ const Hero = () => {
       <div className="relative z-10 flex items-center px-6" style={{ minHeight: '88vh' }}>
         <div className="w-full max-w-6xl mx-auto">
           {/* Content - Left aligned on desktop, center on mobile */}
-          <div className="text-center md:text-left text-white max-w-4xl">
+          <div className="text-center text-white max-w-4xl">
             <motion.h1
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}

@@ -79,7 +79,7 @@ const Hero = () => {
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
-          backgroundImage: `url(https://media.discordapp.net/attachments/1231979221866381466/1417884637296066763/Screenshot_2025-09-16_at_4.27.52_AM.png?ex=68cc1b78&is=68cac9f8&hm=25e25d97a1fda415e9abd82df8acb0ffd7c8f14dc1aaa826c5e50dce607afda2&=&format=webp&quality=lossless&width=1942&height=1328)`,
+          backgroundImage: `url(https://scontent-mia5-1.cdninstagram.com/v/t51.2885-15/552741286_17966393963953994_6879478378473567789_n.jpg?stp=dst-jpg_e35_tt6&efg=eyJ2ZW5jb2RlX3RhZyI6IkZFRUQuaW1hZ2VfdXJsZ2VuLjE0NDB4MTkyMC5zZHIuZjgyNzg3LmRlZmF1bHRfaW1hZ2UuYzIifQ&_nc_ht=scontent-mia5-1.cdninstagram.com&_nc_cat=102&_nc_oc=Q6cZ2QFYR4ZS-GtP_KequGTTBHRtQ2xP8Cxd9tLcSCmrJlxde5xfpg2sFr18dCyJ-hXoGyxZBqdc8wbxw8KML3BXLqT6&_nc_ohc=ketGxuZ8f_0Q7kNvwFCQY3g&_nc_gid=TEbRi4D0HJzR1NF1eQGRKw&edm=APs17CUBAAAA&ccb=7-5&ig_cache_key=MzcyNzQwMjQyNzkyNzg3MzYzOQ%3D%3D.3-ccb7-5&oh=00_AfavefknlVmzNu94CZqiQTebO-KdNd-cfQyj7PNqF6rzKQ&oe=68D774D0&_nc_sid=10d13b)`,
           backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
           backgroundPosition: 'center top', // Show top 50% of the image
           backgroundSize: 'cover',

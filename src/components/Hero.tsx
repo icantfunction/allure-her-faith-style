@@ -87,6 +87,16 @@ const Hero = () => {
         className="absolute inset-0 bg-cover bg-no-repeat"
         aria-hidden="true"
       >
+        {/* Overlay image with blend effect */}
+        <div 
+          className="absolute inset-0 opacity-60 mix-blend-overlay"
+          style={{
+            backgroundImage: `url(/images/hero-overlay.jpg)`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+          }}
+        ></div>
+        
         {/* Enhanced gradient scrim for luxury contrast */}
         <div 
           className="absolute inset-0 mix-blend-multiply"

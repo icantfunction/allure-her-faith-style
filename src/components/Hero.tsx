@@ -79,7 +79,7 @@ const Hero = () => {
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
-          backgroundImage: `url(https://live.staticflickr.com/65535/54805715228_20610b1575_n.jpg)`,
+          backgroundImage: `url(/images/hero.jpg)`,
           backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
           backgroundPosition: 'center top', // Show top 50% of the image
           backgroundSize: 'cover',

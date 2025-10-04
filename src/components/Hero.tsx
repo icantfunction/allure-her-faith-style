@@ -91,7 +91,7 @@ const Hero = () => {
             className="absolute top-0 left-1/2 -translate-x-1/2 h-full"
             style={{ 
               border: 0,
-              width: 'calc(150% + 200px)'
+              width: 'calc(150% + 300px)'
             }}
             allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
             allowFullScreen

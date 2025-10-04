@@ -74,25 +74,22 @@ const Hero = () => {
   };
 
   return (
-    <header className="relative overflow-hidden" style={{ minHeight: '88vh' }}>
+    <header className="relative overflow-hidden" style={{ height: 'clamp(40rem, 56.25vw, 100vh)' }}>
       {/* Background Video with parallax effect */}
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
         }}
-        className="absolute inset-0 overflow-hidden"
+        className="absolute inset-0"
         aria-hidden="true"
       >
-        {/* Video container - responsive sizing */}
-        <div className="absolute inset-0 md:h-[300%] md:-top-[90px]">
+        {/* Video container - 16:9 aspect ratio constrained */}
+        <div className="absolute inset-0">
           <iframe 
             title="vimeo-player" 
             src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 
-            className="absolute top-0 left-1/2 -translate-x-1/2 h-full"
-            style={{ 
-              border: 0,
-              width: 'calc(150% + 900px)'
-            }}
+            className="w-full h-full block"
+            style={{ border: 0 }}
             allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
             allowFullScreen
           />
@@ -108,7 +105,7 @@ const Hero = () => {
       </motion.div>
       
       {/* Content Container */}
-      <div className="relative z-10 flex items-center px-6" style={{ minHeight: '88vh' }}>
+      <div className="relative z-10 flex items-center px-6 h-full">
         <div className="w-full max-w-6xl mx-auto">
           {/* Content - Left aligned on desktop, center on mobile */}
           <div className="text-center text-white max-w-4xl mx-auto">

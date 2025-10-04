@@ -85,23 +85,10 @@ const Hero = () => {
       >
         {/* Video container - responsive sizing */}
         <div className="absolute inset-0 md:h-[300%] md:-top-[90px]">
-          {/* Mobile video - full 16:9 aspect ratio */}
-          <div className="md:hidden relative w-full aspect-video">
-            <iframe 
-              title="vimeo-player" 
-              src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1&playsinline=1" 
-              className="absolute inset-0 w-full h-full"
-              style={{ border: 0 }}
-              allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
-              allowFullScreen
-            />
-          </div>
-          
-          {/* Desktop/tablet video - cover sizing to eliminate gaps */}
           <iframe 
             title="vimeo-player" 
-            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1&playsinline=1" 
-            className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-[100vw] h-[56.25vw] min-h-[100vh] min-w-[177.78vh]"
+            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 
+            className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-[150%] md:w-[200%]"
             style={{ border: 0 }}
             allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
             allowFullScreen

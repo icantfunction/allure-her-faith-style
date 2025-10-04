@@ -88,8 +88,11 @@ const Hero = () => {
           <iframe 
             title="vimeo-player" 
             src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 
-            className="absolute top-0 left-1/2 -translate-x-1/2 h-full w-[150%] md:w-[200%]"
-            style={{ border: 0 }}
+            className="absolute top-0 left-1/2 -translate-x-1/2 h-full"
+            style={{ 
+              border: 0,
+              width: 'calc(150% + 200px)'
+            }}
             allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
             allowFullScreen
           />

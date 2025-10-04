@@ -75,18 +75,26 @@ const Hero = () => {
 
   return (
     <header className="relative overflow-hidden" style={{ minHeight: '88vh' }}>
-      {/* Background Image with parallax effect */}
+      {/* Background Video with parallax effect */}
       <motion.div
         style={{ 
           y: prefersReducedMotion ? 0 : y,
-          backgroundImage: `url(/images/hero.jpg?v=2)`,
-          backgroundColor: 'hsl(var(--light-beige))', // Dominant color fallback
-          backgroundPosition: 'center top', // Show top 50% of the image
-          backgroundSize: 'cover',
         }}
-        className="absolute inset-0 bg-cover bg-no-repeat"
+        className="absolute inset-0 overflow-hidden"
         aria-hidden="true"
       >
+        {/* Video container - responsive sizing */}
+        <div className="absolute inset-0 md:h-[300%] md:-top-0">
+          <iframe 
+            title="vimeo-player" 
+            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 
+            className="absolute top-0 left-0 w-full h-full"
+            style={{ border: 0 }}
+            allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share"
+            allowFullScreen
+          />
+        </div>
+        
         {/* Enhanced gradient scrim for luxury contrast */}
         <div 
           className="absolute inset-0 mix-blend-multiply"

@@ -121,7 +121,7 @@ const Hero = () => {
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.45 }}
-              className="text-subhero mb-10 mx-auto -mt-[50px]"
+              className="text-subhero mb-10 mx-auto -mt-[40px]"
             >
               Where faith meets fashion in timeless elegance
             </motion.p>
@@ -130,6 +130,7 @@ const Hero = () => {
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
+              className="-mt-[40px]"
             >
               {!showEmailForm ? (
                 <Button 

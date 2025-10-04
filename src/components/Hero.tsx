@@ -130,7 +130,7 @@ const Hero = () => {
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
-              className="-mt-[40px]"
+              className="-mt-[30px]"
             >
               {!showEmailForm ? (
                 <Button 

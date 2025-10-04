@@ -7,7 +7,7 @@ const Footer = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="font-heading text-4xl mb-4 font-light">
-            <img src={logo} alt="Allure Her" className="mx-auto h-12 w-auto" />
+            <img src={logo} alt="Allure Her" className="mx-auto h-18 w-auto" />
           </h2>
           <p className="text-primary-foreground/80 mb-8">
             Where faith meets fashion in timeless elegance

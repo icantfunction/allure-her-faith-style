@@ -112,14 +112,9 @@ const Hero = () => {
         <div className="w-full max-w-6xl mx-auto">
           {/* Content - Left aligned on desktop, center on mobile */}
           <div className="text-center text-white max-w-4xl mx-auto">
-            <motion.h1
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: "easeOut", delay: 0.2 }}
-              className="text-hero mb-6"
-            >
+            <h1 className="text-hero mb-6">
               Allure Her
-            </motion.h1>
+            </h1>
             
             <motion.p
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}

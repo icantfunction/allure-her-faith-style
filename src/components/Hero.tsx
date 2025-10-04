@@ -113,15 +113,15 @@ const Hero = () => {
         <div className="w-full max-w-6xl mx-auto">
           {/* Content - Left aligned on desktop, center on mobile */}
           <div className="text-center text-white max-w-4xl mx-auto">
-            <h1 className="text-hero mb-6">
-              <img src={logo} alt="Allure Her" className="mx-auto h-24 md:h-36 w-auto mt-[30px]" />
+            <h1 className="text-hero mb-8">
+              <img src={logo} alt="Allure Her" className="mx-auto h-24 md:h-36 w-auto mt-[80px]" />
             </h1>
             
             <motion.p
               initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.45 }}
-              className="text-subhero mb-8 mx-auto"
+              className="text-subhero mb-10 mx-auto"
             >
               Where faith meets fashion in timeless elegance
             </motion.p>

@@ -84,7 +84,7 @@ const Hero = () => {
         aria-hidden="true"
       >
         {/* Video container - responsive sizing */}
-        <div className="absolute inset-0 md:h-[300%] md:-top-0">
+        <div className="absolute inset-0 md:h-[300%] md:-top-[30px]">
           <iframe 
             title="vimeo-player" 
             src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 

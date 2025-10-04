@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import logo from "@/assets/logo.png";
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -113,7 +114,7 @@ const Hero = () => {
           {/* Content - Left aligned on desktop, center on mobile */}
           <div className="text-center text-white max-w-4xl mx-auto">
             <h1 className="text-hero mb-6">
-              Allure Her
+              <img src={logo} alt="Allure Her" className="mx-auto h-16 md:h-24 w-auto" />
             </h1>
             
             <motion.p

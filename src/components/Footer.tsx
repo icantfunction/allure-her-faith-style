@@ -1,4 +1,5 @@
 import { Instagram, Youtube, Music } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
@@ -6,7 +7,7 @@ const Footer = () => {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="font-heading text-4xl mb-4 font-light">
-            Allure Her
+            <img src={logo} alt="Allure Her" className="mx-auto h-12 w-auto" />
           </h2>
           <p className="text-primary-foreground/80 mb-8">
             Where faith meets fashion in timeless elegance

@@ -114,7 +114,7 @@ const Hero = () => {
           {/* Content - Left aligned on desktop, center on mobile */}
           <div className="text-center text-white max-w-4xl mx-auto">
             <h1 className="text-hero mb-6">
-              <img src={logo} alt="Allure Her" className="mx-auto h-24 md:h-36 w-auto" />
+              <img src={logo} alt="Allure Her" className="mx-auto h-24 md:h-36 w-auto mt-[30px]" />
             </h1>
             
             <motion.p

@@ -9,6 +9,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
+    <!-- Vimeo CDN preconnections for faster video loading -->
+    <link rel="preconnect" href="https://player.vimeo.com">
+    <link rel="preconnect" href="https://i.vimeocdn.com">
+    <link rel="preconnect" href="https://f.vimeocdn.com">
+    
     <!-- Preload critical resources for performance -->
     <link rel="preload" href="/images/logo.png" as="image" type="image/png" fetchpriority="high">
     <link rel="preload" href="/src/assets/hero-image.jpg" as="image" type="image/jpeg">
@@ -35,5 +40,7 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Vimeo Player API - loads asynchronously without blocking rendering -->
+    <script src="https://player.vimeo.com/api/player.js" defer></script>
   </body>
 </html>

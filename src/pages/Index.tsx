@@ -5,6 +5,7 @@ import Encouragement from "@/components/Encouragement";
 import Testimonials from "@/components/Testimonials";
 import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
+import { VisitorReportTest } from "@/components/VisitorReportTest";
 
 const Index = () => {
   return (
@@ -12,6 +13,7 @@ const Index = () => {
       <Hero />
       <About />
       <Newsletter />
+      <VisitorReportTest />
     </div>
   );
 };

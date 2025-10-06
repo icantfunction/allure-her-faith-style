@@ -131,6 +131,7 @@ const Hero = () => {
         {/* Video container - responsive sizing */}
         <div className="absolute inset-0 md:h-[400%] md:-top-[370px]">
           <iframe 
+            key="vimeo-video"
             title="vimeo-player" 
             src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1&playsinline=1&preload=auto" 
             className="absolute top-0 left-1/2 -translate-x-1/2 h-full"
@@ -164,7 +165,6 @@ const Hero = () => {
                 className="mx-auto h-24 md:h-36 w-auto mt-[80px]"
                 width="754"
                 height="332"
-                fetchPriority="high"
               />
             </h1>
             

@@ -4,13 +4,6 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-// TypeScript declaration for Vimeo Player API
-declare global {
-  interface Window {
-    Vimeo?: any;
-  }
-}
-
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -32,43 +25,6 @@ const Hero = () => {
     mediaQuery.addEventListener('change', handleChange);
     
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  // Vimeo video preloading optimization
-  useEffect(() => {
-    const initVimeoPreload = () => {
-      const iframe = document.querySelector('iframe[title="vimeo-player"]') as HTMLIFrameElement;
-      if (!iframe || !window.Vimeo) return;
-
-      try {
-        const player = new window.Vimeo.Player(iframe);
-        
-        // Force buffer by playing then immediately pausing
-        player.on('loaded', () => {
-          player.play().then(() => {
-            // Video starts buffering immediately
-            player.pause();
-          }).catch((error: any) => {
-            // Autoplay might be blocked, but buffering still happens
-            console.log('Vimeo preload:', error.name);
-          });
-        });
-      } catch (error) {
-        console.log('Vimeo API not ready yet');
-      }
-    };
-
-    // Check if Vimeo API is already loaded
-    if (window.Vimeo) {
-      initVimeoPreload();
-    } else {
-      // Wait for script to load
-      const handleLoad = () => {
-        setTimeout(initVimeoPreload, 100);
-      };
-      window.addEventListener('load', handleLoad);
-      return () => window.removeEventListener('load', handleLoad);
-    }
   }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -131,9 +87,8 @@ const Hero = () => {
         {/* Video container - responsive sizing */}
         <div className="absolute inset-0 md:h-[400%] md:-top-[370px]">
           <iframe 
-            key="vimeo-video"
             title="vimeo-player" 
-            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1&playsinline=1&preload=auto" 
+            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 
             className="absolute top-0 left-1/2 -translate-x-1/2 h-full"
             style={{ 
               border: 0,
@@ -165,6 +120,7 @@ const Hero = () => {
                 className="mx-auto h-24 md:h-36 w-auto mt-[80px]"
                 width="754"
                 height="332"
+                fetchPriority="high"
               />
             </h1>
             

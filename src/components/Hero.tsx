@@ -4,12 +4,6 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-declare global {
-  interface Window {
-    Vimeo?: any;
-  }
-}
-
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -31,35 +25,6 @@ const Hero = () => {
     mediaQuery.addEventListener('change', handleChange);
     
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
-    // Programmatic video preloading with Vimeo API
-    const initVimeoPreload = () => {
-      const iframe = document.querySelector('iframe[title="vimeo-player"]');
-      if (!iframe || !window.Vimeo) return;
-
-      const player = new window.Vimeo.Player(iframe);
-      
-      // Force buffer by playing then immediately pausing
-      player.on('loaded', () => {
-        player.play().then(() => {
-          // Video starts buffering
-          player.pause();
-        }).catch((error: any) => {
-          console.log('Vimeo preload:', error);
-        });
-      });
-    };
-
-    // Check if Vimeo API is already loaded
-    if (window.Vimeo) {
-      initVimeoPreload();
-    } else {
-      // Wait for script to load
-      window.addEventListener('load', initVimeoPreload);
-      return () => window.removeEventListener('load', initVimeoPreload);
-    }
   }, []);
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -123,7 +88,7 @@ const Hero = () => {
         <div className="absolute inset-0 md:h-[400%] md:-top-[370px]">
           <iframe 
             title="vimeo-player" 
-            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1&playsinline=1&preload=auto" 
+            src="https://player.vimeo.com/video/1124510825?h=1e55c9c6d6&autoplay=1&loop=1&muted=1&background=1" 
             className="absolute top-0 left-1/2 -translate-x-1/2 h-full"
             style={{ 
               border: 0,

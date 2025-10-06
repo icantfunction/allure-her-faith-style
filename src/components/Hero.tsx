@@ -114,14 +114,25 @@ const Hero = () => {
           {/* Content - Left aligned on desktop, center on mobile */}
           <div className="text-center text-white max-w-4xl mx-auto">
             <h1 className="text-hero mb-8">
-              <img 
-                src="/images/logo.png" 
-                alt="Allure Her" 
-                className="mx-auto h-24 md:h-36 w-auto mt-[80px]"
-                width="754"
-                height="332"
-                fetchPriority="high"
-              />
+              <picture>
+                <source 
+                  srcSet="/images/logo-small.webp 1x, /images/logo-large.webp 2x" 
+                  media="(max-width: 768px)"
+                  type="image/webp"
+                />
+                <source 
+                  srcSet="/images/logo-large.webp" 
+                  type="image/webp"
+                />
+                <img 
+                  src="/images/logo.png" 
+                  alt="Allure Her" 
+                  className="mx-auto h-24 md:h-36 w-auto mt-[80px]"
+                  width="436"
+                  height="192"
+                  fetchPriority="high"
+                />
+              </picture>
             </h1>
             
             <motion.p

@@ -1,10 +1,25 @@
 const PromoBanner = () => {
   return (
-    <div className="bg-primary text-primary-foreground py-2 px-4">
-      <div className="container mx-auto text-center">
-        <p className="text-sm font-medium">
+    <div className="bg-primary text-primary-foreground py-2 px-4 overflow-hidden">
+      <div className="animate-marquee whitespace-nowrap">
+        <span className="text-sm font-medium inline-block px-8">
           Up to 15% off
-        </p>
+        </span>
+        <span className="text-sm font-medium inline-block px-8">
+          Up to 15% off
+        </span>
+        <span className="text-sm font-medium inline-block px-8">
+          Up to 15% off
+        </span>
+        <span className="text-sm font-medium inline-block px-8">
+          Up to 15% off
+        </span>
+        <span className="text-sm font-medium inline-block px-8">
+          Up to 15% off
+        </span>
+        <span className="text-sm font-medium inline-block px-8">
+          Up to 15% off
+        </span>
       </div>
     </div>
   );

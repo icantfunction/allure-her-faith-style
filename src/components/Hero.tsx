@@ -15,8 +15,10 @@ import {
 
 const Hero = () => {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [showDialog, setShowDialog] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showDevotionalsDialog, setShowDevotionalsDialog] = useState(false);
   const [email, setEmail] = useState("");
+  const [pendingEmail, setPendingEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   
@@ -47,7 +49,13 @@ const Hero = () => {
       return;
     }
 
+    setPendingEmail(email);
+    setShowDevotionalsDialog(true);
+  };
+
+  const submitToZapier = async (wantsDevotionals: boolean) => {
     setIsLoading(true);
+    setShowDevotionalsDialog(false);
 
     try {
       await fetch("https://hooks.zapier.com/hooks/catch/23791564/um92syy/", {
@@ -57,19 +65,23 @@ const Hero = () => {
         },
         mode: "no-cors",
         body: JSON.stringify({
-          email: email,
+          email: pendingEmail,
           timestamp: new Date().toISOString(),
           source: "allure_her_insider",
+          wants_devotionals: wantsDevotionals,
         }),
       });
 
       toast({
         title: "Welcome to the insider list!",
-        description: "You'll be the first to know when we launch.",
+        description: wantsDevotionals 
+          ? "You'll be the first to know when we launch, plus weekly devotionals."
+          : "You'll be the first to know when we launch.",
       });
       
       setEmail("");
-      setShowDialog(false);
+      setPendingEmail("");
+      setShowEmailForm(false);
     } catch (error) {
       console.error("Error submitting email:", error);
       toast({
@@ -84,31 +96,22 @@ const Hero = () => {
 
   return (
     <>
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog open={showDevotionalsDialog} onOpenChange={setShowDevotionalsDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Join Our Insider List</DialogTitle>
+            <DialogTitle>Would you like to receive devotionals?</DialogTitle>
             <DialogDescription>
-              Be the first to know about new collections, exclusive offers, and faith-inspired fashion.
+              We send weekly devotionals to nourish your soul and inspire your faith journey.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEmailSubmit}>
-            <div className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full"
-                disabled={isLoading}
-              />
-            </div>
-            <DialogFooter className="mt-6">
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Joining..." : "Join"}
-              </Button>
-            </DialogFooter>
-          </form>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => submitToZapier(false)} disabled={isLoading}>
+              No, just updates
+            </Button>
+            <Button onClick={() => submitToZapier(true)} disabled={isLoading}>
+              Yes, include devotionals
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -176,13 +179,33 @@ const Hero = () => {
               transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
               className="-mt-[30px]"
             >
-              <Button 
-                onClick={() => setShowDialog(true)}
-                className="hero-cta"
-                aria-label="Be an Insider - Get early access to our luxury Christian fashion"
-              >
-                Be an Insider
-              </Button>
+              {!showEmailForm ? (
+                <Button 
+                  onClick={() => setShowEmailForm(true)}
+                  className="hero-cta"
+                  aria-label="Be an Insider - Get early access to our luxury Christian fashion"
+                >
+                  Be an Insider
+                </Button>
+              ) : (
+                <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
+                  <Input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 h-12 bg-white/90 border-white/30 focus:border-white text-foreground placeholder:text-muted-foreground"
+                    disabled={isLoading}
+                  />
+                  <Button 
+                    type="submit" 
+                    className="hero-cta h-12 px-8"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Joining..." : "Join"}
+                  </Button>
+                </form>
+              )}
             </motion.div>
           </div>
         </div>

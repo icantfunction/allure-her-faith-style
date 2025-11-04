@@ -4,10 +4,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Mail, Heart } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showDialog, setShowDialog] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
   const { toast } = useToast();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -22,28 +32,38 @@ const Newsletter = () => {
       return;
     }
 
+    setPendingEmail(email);
+    setShowDialog(true);
+  };
+
+  const submitToZapier = async (wantsDevotionals: boolean) => {
     setIsLoading(true);
+    setShowDialog(false);
 
     try {
-      const response = await fetch("https://hooks.zapier.com/hooks/catch/23791564/um92syy/", {
+      await fetch("https://hooks.zapier.com/hooks/catch/23791564/um92syy/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         mode: "no-cors",
         body: JSON.stringify({
-          email: email,
+          email: pendingEmail,
           timestamp: new Date().toISOString(),
           source: "allure_her_newsletter",
+          wants_devotionals: wantsDevotionals,
         }),
       });
 
       toast({
         title: "Welcome to our newsletter!",
-        description: "Thank you for subscribing. You'll receive updates soon.",
+        description: wantsDevotionals 
+          ? "Thank you for subscribing! You'll receive updates and devotionals soon."
+          : "Thank you for subscribing! You'll receive updates soon.",
       });
       
       setEmail("");
+      setPendingEmail("");
     } catch (error) {
       console.error("Error submitting email:", error);
       toast({
@@ -56,8 +76,28 @@ const Newsletter = () => {
     }
   };
   return (
-    <section className="py-20 px-6">
-      <div className="max-w-4xl mx-auto">
+    <>
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Would you like to receive devotionals?</DialogTitle>
+            <DialogDescription>
+              We send weekly devotionals to nourish your soul and inspire your faith journey.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => submitToZapier(false)} disabled={isLoading}>
+              No, just updates
+            </Button>
+            <Button onClick={() => submitToZapier(true)} disabled={isLoading}>
+              Yes, include devotionals
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <section className="py-20 px-6">
+        <div className="max-w-4xl mx-auto">
         <Card className="bg-gradient-warm border-0 shadow-luxury">
           <CardContent className="p-12 text-center">
             <div className="mb-8">
@@ -110,6 +150,7 @@ const Newsletter = () => {
         </Card>
       </div>
     </section>
+    </>
   );
 };
 

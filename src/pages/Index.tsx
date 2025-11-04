@@ -6,6 +6,7 @@ import Encouragement from "@/components/Encouragement";
 import Testimonials from "@/components/Testimonials";
 import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
+import InsiderReminderPopup from "@/components/InsiderReminderPopup";
 
 const Index = () => {
   return (
@@ -15,6 +16,7 @@ const Index = () => {
       <About />
       <Shop />
       <Newsletter />
+      <InsiderReminderPopup />
     </div>
   );
 };

@@ -68,7 +68,7 @@ const Shop = () => {
           <h2 className="text-section-title mb-6 text-primary">
             Shop the Collection
           </h2>
-          <p className="text-subhero max-w-2xl mx-auto">
+          <p className="text-lg max-w-2xl mx-auto text-foreground/80">
             Versatile sets that transition beautifully from church to casual luxury, 
             designed for the woman who values both style and substance.
           </p>

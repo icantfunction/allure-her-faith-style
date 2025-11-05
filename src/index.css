@@ -278,3 +278,67 @@
     transform: translateY(0);
   }
 }
+
+/* Admin Panel Styles */
+.admin-wrap {
+  padding: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+  font-family: Inter, system-ui, Arial, sans-serif;
+}
+
+.admin-menu {
+  line-height: 2rem;
+}
+
+.admin-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 16px;
+}
+
+.admin-grid {
+  display: grid;
+  gap: 8px;
+  max-width: 420px;
+}
+
+.admin-grid.admin-grid-small {
+  max-width: 360px;
+}
+
+.admin-btn {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  cursor: pointer;
+  margin-top: 16px;
+}
+
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-list {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-item {
+  list-style: none;
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 12px;
+  background: hsl(var(--card));
+}
+
+.admin-name {
+  font-weight: 600;
+}

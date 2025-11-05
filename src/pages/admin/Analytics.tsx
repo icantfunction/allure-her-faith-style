@@ -3,8 +3,7 @@ import { AdminAPI } from "../../lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, Calendar, Eye } from "lucide-react";
-import { Link } from "react-router-dom";
+import { TrendingUp, Calendar, Eye, BarChart3 } from "lucide-react";
 
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 
@@ -44,22 +43,23 @@ export default function Analytics() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <h1 className="text-3xl font-heading font-semibold text-foreground">Analytics Dashboard</h1>
-            <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Back to Admin
-            </Link>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <BarChart3 className="h-6 w-6 text-primary" />
           </div>
-          <p className="text-muted-foreground">Last 7 days of visitor activity</p>
-        </motion.div>
+          <div>
+            <h1 className="text-3xl font-heading font-semibold text-foreground">Analytics Dashboard</h1>
+            <p className="text-muted-foreground text-sm">Last 7 days performance metrics</p>
+          </div>
+        </div>
+      </motion.div>
 
         {loading ? (
           <div className="flex items-center justify-center h-64">
@@ -220,10 +220,9 @@ export default function Analytics() {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
           </motion.div>
-        )}
-      </div>
+        </motion.div>
+      )}
     </div>
   );
 }

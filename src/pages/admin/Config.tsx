@@ -39,29 +39,23 @@ export default function Config() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Palette className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-heading font-semibold text-foreground">Site Configuration</h1>
-                <p className="text-muted-foreground text-sm">Customize your store's appearance</p>
-              </div>
-            </div>
-            <Link to="/admin" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              ← Back to Admin
-            </Link>
+    <div className="space-y-6">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center gap-3 mb-2">
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Palette className="h-6 w-6 text-primary" />
           </div>
-        </motion.div>
+          <div>
+            <h1 className="text-3xl font-heading font-semibold text-foreground">Site Configuration</h1>
+            <p className="text-muted-foreground text-sm">Customize your store's appearance</p>
+          </div>
+        </div>
+      </motion.div>
 
         {/* Theme Configuration Card */}
         <motion.div
@@ -183,8 +177,7 @@ export default function Config() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
-      </div>
+      </motion.div>
     </div>
   );
 }

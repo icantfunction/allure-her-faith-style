@@ -10,6 +10,7 @@ import AdminLogin from "./pages/admin/Login";
 import AdminProducts from "./pages/admin/Products";
 import AdminConfig from "./pages/admin/Config";
 import AdminAnalytics from "./pages/admin/Analytics";
+import AdminLayout from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/auth/AuthContext";
 import ProtectedRoute from "@/auth/ProtectedRoute";
 import { usePageVisitor } from "@/hooks/usePageVisitor";
@@ -23,10 +24,10 @@ const AppContent = () => {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin" element={<ProtectedRoute><AdminHome /></ProtectedRoute>} />
-      <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
-      <Route path="/admin/config" element={<ProtectedRoute><AdminConfig /></ProtectedRoute>} />
-      <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminHome /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/products" element={<ProtectedRoute><AdminLayout><AdminProducts /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/config" element={<ProtectedRoute><AdminLayout><AdminConfig /></AdminLayout></ProtectedRoute>} />
+      <Route path="/admin/analytics" element={<ProtectedRoute><AdminLayout><AdminAnalytics /></AdminLayout></ProtectedRoute>} />
       {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,14 +1,8 @@
-import React from "react";
 import { Link } from "react-router-dom";
-import { requireAuth, getIdToken, signOut } from "../../lib/auth";
+import { useAuth } from "@/auth/AuthContext";
 
 export default function AdminHome() {
-  const [ready, setReady] = React.useState(false);
-  React.useEffect(() => { requireAuth(); setReady(true); }, []);
-  if (!ready) return null;
-
-  const token = getIdToken();
-  if (!token) return null;
+  const { signOut } = useAuth();
 
   return (
     <div className="admin-wrap">

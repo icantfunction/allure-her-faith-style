@@ -1,6 +1,5 @@
 import React from "react";
 import { PublicAPI, AdminAPI } from "../../lib/api";
-import { getIdToken, requireAuth } from "../../lib/auth";
 import { uploadWithPresign } from "../../lib/upload";
 
 type Product = {
@@ -18,19 +17,20 @@ export default function Products() {
   const [file, setFile] = React.useState<File | null>(null);
   const [busy, setBusy] = React.useState(false);
 
-  React.useEffect(() => { requireAuth(); PublicAPI.listProducts().then(setList); }, []);
+  React.useEffect(() => { 
+    PublicAPI.listProducts().then(setList).catch(console.error); 
+  }, []);
 
   async function create() {
     try {
       setBusy(true);
-      const token = getIdToken()!;
       let images: string[] = [];
       if (file) {
-        const presign = await AdminAPI.presignImage(token, file.name, file.type || "application/octet-stream");
+        const presign = await AdminAPI.presignImage(file.name, file.type || "application/octet-stream");
         await uploadWithPresign(presign.uploadUrl, file);
         images = [presign.key];
       }
-      await AdminAPI.createProduct(token, { name, price, images });
+      await AdminAPI.createProduct({ name, price, images });
       setName(""); setPrice(0); setFile(null);
       setList(await PublicAPI.listProducts());
       alert("Product created");

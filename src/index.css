@@ -342,3 +342,69 @@
 .admin-name {
   font-weight: 600;
 }
+
+/* Admin panel custom styles */
+.admin-wrap {
+  padding: 24px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.admin-menu {
+  line-height: 2rem;
+  list-style: none;
+  padding-left: 0;
+}
+.admin-menu a {
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+.admin-menu a:hover {
+  text-decoration: underline;
+}
+.admin-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.admin-grid {
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+}
+.admin-grid.admin-grid-small {
+  max-width: 360px;
+}
+.admin-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 500;
+  font-size: 14px;
+}
+.admin-grid input {
+  padding: 8px 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-size: 14px;
+}
+.admin-btn {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+}
+.admin-btn:hover {
+  opacity: 0.9;
+}
+.admin-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

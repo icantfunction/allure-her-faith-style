@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -11,7 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
@@ -23,7 +24,18 @@ const navItems = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { signOut } = useAuth();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (isMobile && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   const isActive = (path: string) => {
     if (path === "/admin") {
@@ -65,53 +77,70 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
-        <motion.aside
-          initial={false}
-          animate={{
-            width: sidebarOpen ? 256 : 0,
-            opacity: sidebarOpen ? 1 : 0,
-          }}
-          transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="sticky top-16 h-[calc(100vh-4rem)] overflow-hidden border-r bg-card"
-        >
-          <nav className="space-y-2 p-4">
-            {navItems.map((item) => {
-              const active = isActive(item.url);
-              return (
-                <Link
-                  key={item.url}
-                  to={item.url}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all hover:bg-accent ${
-                    active
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span className="whitespace-nowrap">{item.title}</span>
-                </Link>
-              );
-            })}
-          </nav>
+      <div className="flex relative">
+        {/* Mobile Backdrop */}
+        <AnimatePresence>
+          {isMobile && sidebarOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSidebarOpen(false)}
+              className="fixed inset-0 top-16 bg-background/80 backdrop-blur-sm z-40"
+            />
+          )}
+        </AnimatePresence>
 
-          {/* Quick Actions */}
-          <div className="mt-8 border-t p-4">
-            <p className="mb-3 text-xs font-medium text-muted-foreground">QUICK ACTIONS</p>
-            <div className="space-y-2">
-              <Link
-                to="/"
-                className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
-              >
-                View Site →
-              </Link>
-            </div>
-          </div>
-        </motion.aside>
+        {/* Sidebar */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.aside
+              initial={{ x: isMobile ? -256 : 0, opacity: isMobile ? 0 : 1 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: isMobile ? -256 : 0, opacity: isMobile ? 0 : 1 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className={`${
+                isMobile ? "fixed left-0 top-16 z-50" : "sticky top-16"
+              } h-[calc(100vh-4rem)] w-64 overflow-hidden border-r bg-card`}
+            >
+              <nav className="space-y-2 p-4">
+                {navItems.map((item) => {
+                  const active = isActive(item.url);
+                  return (
+                    <Link
+                      key={item.url}
+                      to={item.url}
+                      className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all hover:bg-accent ${
+                        active
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <item.icon className="h-5 w-5" />
+                      <span className="whitespace-nowrap">{item.title}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              {/* Quick Actions */}
+              <div className="mt-8 border-t p-4">
+                <p className="mb-3 text-xs font-medium text-muted-foreground">QUICK ACTIONS</p>
+                <div className="space-y-2">
+                  <Link
+                    to="/"
+                    className="flex items-center gap-3 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-all hover:bg-accent hover:text-foreground"
+                  >
+                    View Site →
+                  </Link>
+                </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto min-w-0">
           <div className="p-6">
             {children}
           </div>

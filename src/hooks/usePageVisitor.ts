@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { recordVisit } from '@/api/allureherApi';
 
 // Generate or retrieve session ID
 const getSessionId = (): string => {
@@ -23,6 +24,7 @@ export const usePageVisitor = () => {
       try {
         const sessionId = getSessionId();
         
+        // Log to Supabase (detailed tracking)
         await supabase.from('page_visitors').insert({
           page_path: location.pathname,
           user_agent: navigator.userAgent,
@@ -30,7 +32,10 @@ export const usePageVisitor = () => {
           session_id: sessionId,
         });
         
-        console.log('Page visit logged:', location.pathname);
+        // Log to AWS API (analytics aggregation)
+        await recordVisit();
+        
+        console.log('Page visit logged to both systems:', location.pathname);
       } catch (error) {
         console.error('Error logging page visit:', error);
       }

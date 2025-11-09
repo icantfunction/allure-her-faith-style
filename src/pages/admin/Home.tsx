@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, Palette, BarChart3, TrendingUp } from "lucide-react";
+import { ShoppingBag, Palette, BarChart3, TrendingUp, Mail } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const quickStats = [
@@ -24,6 +24,13 @@ const quickStats = [
     icon: BarChart3,
     href: "/admin/analytics",
     color: "text-green-500",
+  },
+  {
+    title: "Email",
+    description: "Campaign management",
+    icon: Mail,
+    href: "/admin/email-management",
+    color: "text-orange-500",
   },
 ];
 

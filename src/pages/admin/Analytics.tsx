@@ -1,5 +1,5 @@
 import React from "react";
-import { AdminAPI } from "../../lib/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
@@ -12,12 +12,42 @@ export default function Analytics() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const end = new Date();
-    const start = new Date(Date.now() - 7 * 24 * 3600 * 1000);
-    AdminAPI.dailyAnalytics(iso(start), iso(end))
-      .then(setRows)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    const fetchAnalytics = async () => {
+      try {
+        const end = new Date();
+        const start = new Date(Date.now() - 7 * 24 * 3600 * 1000);
+        
+        // Query page_visitors table from Lovable Cloud
+        const { data, error } = await supabase
+          .from('page_visitors')
+          .select('visited_at')
+          .gte('visited_at', start.toISOString())
+          .lte('visited_at', end.toISOString());
+        
+        if (error) throw error;
+        
+        // Group visits by date and count
+        const dailyCounts: Record<string, number> = {};
+        
+        data?.forEach((row) => {
+          const date = new Date(row.visited_at).toISOString().slice(0, 10);
+          dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+        });
+        
+        // Convert to array format expected by chart
+        const formattedRows = Object.entries(dailyCounts)
+          .map(([date, count]) => ({ date, count }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        
+        setRows(formattedRows);
+      } catch (error) {
+        console.error('Error fetching analytics from Lovable Cloud:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAnalytics();
   }, []);
 
   const totalVisits = rows.reduce((sum, r) => sum + r.count, 0);

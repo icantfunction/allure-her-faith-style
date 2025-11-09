@@ -6,6 +6,7 @@ import {
   ShoppingBag,
   Palette,
   BarChart3,
+  Mail,
   LogOut,
   Menu,
   X,
@@ -17,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 const navItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Products", url: "/admin/products", icon: ShoppingBag },
+  { title: "Email & Subscribers", url: "/admin/emails", icon: Mail },
   { title: "Site Config", url: "/admin/config", icon: Palette },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];

@@ -20,13 +20,19 @@ export default function Analytics() {
         const end = new Date();
         const start = new Date(Date.now() - 7 * 24 * 3600 * 1000);
         
+        console.log('Fetching analytics from AWS API...');
+        console.log('Date range:', start.toISOString().slice(0, 10), 'to', end.toISOString().slice(0, 10));
+        
         // Use AWS API for analytics
         const data = await adminGetDailyAnalytics(
           start.toISOString().slice(0, 10),
           end.toISOString().slice(0, 10)
         );
         
+        console.log('AWS API response:', data);
+        
         if (!data || data.length === 0) {
+          console.warn('No analytics data returned from AWS API');
           setRows([]);
           setHourlyData([]);
           setUniqueSessions(0);
@@ -41,6 +47,8 @@ export default function Analytics() {
           count: row.visits || 0
         })).sort((a, b) => a.date.localeCompare(b.date));
         
+        console.log('Formatted rows:', formattedRows);
+        
         // Calculate unique sessions from AWS data
         const uniqueSessionCount = data.reduce((sum: number, row: any) => sum + (row.uniqueVisitors || 0), 0);
         
@@ -50,6 +58,8 @@ export default function Analytics() {
           hour: `${i.toString().padStart(2, '0')}:00`,
           count: 0 // AWS API doesn't provide hourly breakdown yet
         }));
+        
+        console.log('Total visits:', totalVisitsCount, 'Unique sessions:', uniqueSessionCount);
         
         setRows(formattedRows);
         setHourlyData(formattedHourly);

@@ -64,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <img src="/images/logo.png" alt="Logo" className="h-8 w-8" />
               <div>
                 <h1 className="text-lg font-heading font-semibold">Admin Portal</h1>
-                <p className="text-xs text-muted-foreground">Management Dashboard</p>
+                <p className="text-xs text-muted-foreground hidden md:block">Management Dashboard</p>
               </div>
             </div>
           </div>

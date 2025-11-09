@@ -1,5 +1,5 @@
 import React from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { adminGetDailyAnalytics } from "@/api/allureherApi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { motion } from "framer-motion";
@@ -20,68 +20,43 @@ export default function Analytics() {
         const end = new Date();
         const start = new Date(Date.now() - 7 * 24 * 3600 * 1000);
         
-        // Query page_visitors table from Lovable Cloud
-        const { data, error } = await supabase
-          .from('page_visitors')
-          .select('visited_at, session_id')
-          .gte('visited_at', start.toISOString())
-          .lte('visited_at', end.toISOString());
+        // Use AWS API for analytics
+        const data = await adminGetDailyAnalytics(
+          start.toISOString().slice(0, 10),
+          end.toISOString().slice(0, 10)
+        );
         
-        if (error) throw error;
+        if (!data || data.length === 0) {
+          setRows([]);
+          setHourlyData([]);
+          setUniqueSessions(0);
+          setAvgSessionDuration(0);
+          setLoading(false);
+          return;
+        }
         
-        // Group visits by date and count
-        const dailyCounts: Record<string, number> = {};
-        const hourlyCounts: Record<string, number> = {};
-        const sessionTimes: Record<string, Date[]> = {};
+        // AWS API returns aggregated daily data: { date, visits, uniqueVisitors }
+        const formattedRows = data.map((row: any) => ({
+          date: row.date,
+          count: row.visits || 0
+        })).sort((a, b) => a.date.localeCompare(b.date));
         
-        data?.forEach((row) => {
-          const visitDate = new Date(row.visited_at);
-          const date = visitDate.toISOString().slice(0, 10);
-          const hour = visitDate.getHours();
-          
-          // Daily counts
-          dailyCounts[date] = (dailyCounts[date] || 0) + 1;
-          
-          // Hourly counts
-          hourlyCounts[hour] = (hourlyCounts[hour] || 0) + 1;
-          
-          // Session tracking for duration calculation
-          if (!sessionTimes[row.session_id]) {
-            sessionTimes[row.session_id] = [];
-          }
-          sessionTimes[row.session_id].push(visitDate);
-        });
+        // Calculate unique sessions from AWS data
+        const uniqueSessionCount = data.reduce((sum: number, row: any) => sum + (row.uniqueVisitors || 0), 0);
         
-        // Convert daily data to array format expected by chart
-        const formattedRows = Object.entries(dailyCounts)
-          .map(([date, count]) => ({ date, count }))
-          .sort((a, b) => a.date.localeCompare(b.date));
-        
-        // Convert hourly data to array format
+        // For hourly data, we'll create a basic distribution (AWS API doesn't provide hourly breakdown)
+        const totalVisitsCount = formattedRows.reduce((sum, r) => sum + r.count, 0);
         const formattedHourly = Array.from({ length: 24 }, (_, i) => ({
           hour: `${i.toString().padStart(2, '0')}:00`,
-          count: hourlyCounts[i] || 0
+          count: 0 // AWS API doesn't provide hourly breakdown yet
         }));
-        
-        // Calculate unique sessions
-        const uniqueSessionCount = Object.keys(sessionTimes).length;
-        
-        // Calculate average session duration (in minutes)
-        const sessionDurations = Object.values(sessionTimes).map(times => {
-          if (times.length < 2) return 0;
-          const sorted = times.sort((a, b) => a.getTime() - b.getTime());
-          const duration = (sorted[sorted.length - 1].getTime() - sorted[0].getTime()) / 1000 / 60;
-          return duration;
-        });
-        
-        const avgDuration = sessionDurations.reduce((sum, d) => sum + d, 0) / sessionDurations.length || 0;
         
         setRows(formattedRows);
         setHourlyData(formattedHourly);
         setUniqueSessions(uniqueSessionCount);
-        setAvgSessionDuration(Math.round(avgDuration));
+        setAvgSessionDuration(0); // AWS API doesn't provide session duration yet
       } catch (error) {
-        console.error('Error fetching analytics from Lovable Cloud:', error);
+        console.error('Error fetching analytics from AWS:', error);
       } finally {
         setLoading(false);
       }

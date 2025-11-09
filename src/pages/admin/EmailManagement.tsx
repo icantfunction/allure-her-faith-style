@@ -9,8 +9,20 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/auth/AuthContext";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   adminListSubscribers,
   adminListEmailCampaigns,
+  unsubscribeEmail,
+  subscribeEmail,
   type Subscriber,
   type Campaign,
 } from "@/api/allureherApi";
@@ -25,6 +37,12 @@ export default function EmailManagement() {
   const [loadingCampaigns, setLoadingCampaigns] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [composerOpen, setComposerOpen] = React.useState(false);
+  const [actioningEmail, setActioningEmail] = React.useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = React.useState<{
+    open: boolean;
+    email: string;
+    action: "unsubscribe" | "resubscribe";
+  }>({ open: false, email: "", action: "unsubscribe" });
 
   const loadSubscribers = async () => {
     try {
@@ -73,6 +91,41 @@ export default function EmailManagement() {
   const handleCampaignSuccess = () => {
     setComposerOpen(false);
     loadCampaigns();
+  };
+
+  const handleStatusAction = (subscriber: Subscriber) => {
+    const action = subscriber.status === "subscribed" ? "unsubscribe" : "resubscribe";
+    setConfirmDialog({ open: true, email: subscriber.email, action });
+  };
+
+  const executeStatusChange = async () => {
+    const { email, action } = confirmDialog;
+    try {
+      setActioningEmail(email);
+      if (action === "unsubscribe") {
+        await unsubscribeEmail(email);
+        toast({
+          title: "Unsubscribed",
+          description: `${email} has been unsubscribed.`,
+        });
+      } else {
+        await subscribeEmail(email, "admin");
+        toast({
+          title: "Resubscribed",
+          description: `${email} has been resubscribed.`,
+        });
+      }
+      await loadSubscribers();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || `Failed to ${action}`,
+        variant: "destructive",
+      });
+    } finally {
+      setActioningEmail(null);
+      setConfirmDialog({ open: false, email: "", action: "unsubscribe" });
+    }
   };
 
   return (
@@ -189,6 +242,7 @@ export default function EmailManagement() {
                           <TableHead>Source</TableHead>
                           <TableHead>Subscribed At</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -215,6 +269,25 @@ export default function EmailManagement() {
                               >
                                 {subscriber.status}
                               </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant={subscriber.status === "subscribed" ? "outline" : "default"}
+                                size="sm"
+                                onClick={() => handleStatusAction(subscriber)}
+                                disabled={actioningEmail === subscriber.email}
+                              >
+                                {actioningEmail === subscriber.email ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Working...
+                                  </>
+                                ) : subscriber.status === "subscribed" ? (
+                                  "Unsubscribe"
+                                ) : (
+                                  "Resubscribe"
+                                )}
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -295,6 +368,27 @@ export default function EmailManagement() {
       </motion.div>
 
       <CampaignComposer open={composerOpen} onOpenChange={setComposerOpen} onSuccess={handleCampaignSuccess} />
+
+      <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ ...confirmDialog, open })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmDialog.action === "unsubscribe" ? "Unsubscribe" : "Resubscribe"} Subscriber?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmDialog.action === "unsubscribe"
+                ? `Are you sure you want to unsubscribe ${confirmDialog.email}? They will no longer receive email campaigns.`
+                : `Are you sure you want to resubscribe ${confirmDialog.email}? They will start receiving email campaigns again.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeStatusChange}>
+              {confirmDialog.action === "unsubscribe" ? "Unsubscribe" : "Resubscribe"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -5,7 +5,9 @@
 export type Subscriber = {
   siteId: string;
   email: string;
-  subscribedAt: string | null;
+  subscribedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
   status: "subscribed" | "unsubscribed";
   source?: string | null;
 };
@@ -234,11 +236,17 @@ export async function adminDeleteProduct(productId: string): Promise<void> {
 
 // GET /admin/email/subscribers?siteId=...
 export async function adminListSubscribers() {
-  return request<Subscriber[]>(
+  const response = await request<{ items: any[] }>(
     `/admin/email/subscribers?siteId=${encodeURIComponent(SITE_ID)}`,
     {},
     "admin"
   );
+  
+  // Map backend response (createdAt) to frontend format (subscribedAt)
+  return (response?.items || []).map((sub) => ({
+    ...sub,
+    subscribedAt: sub.subscribedAt || sub.createdAt,
+  })) as Subscriber[];
 }
 
 // GET /admin/email/campaigns?siteId=...

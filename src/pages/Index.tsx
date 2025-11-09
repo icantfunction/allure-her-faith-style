@@ -2,8 +2,11 @@ import Hero from "@/components/Hero";
 import About from "@/components/About";
 import Newsletter from "@/components/Newsletter";
 import InsiderReminderPopup from "@/components/InsiderReminderPopup";
+import { useAmbassadorTracking } from "@/hooks/useAmbassadorTracking";
 
 const Index = () => {
+  useAmbassadorTracking();
+  
   return (
     <div className="min-h-screen">
       <Hero />

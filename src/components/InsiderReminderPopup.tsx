@@ -4,8 +4,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { subscribeEmail } from "@/api/allureherApi";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 const InsiderReminderPopup = () => {
+  const { popup } = useSiteConfig();
   const [showMainDialog, setShowMainDialog] = useState(false);
   const [showDevotionalsDialog, setShowDevotionalsDialog] = useState(false);
   const [email, setEmail] = useState("");
@@ -14,6 +16,9 @@ const InsiderReminderPopup = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    // Don't show if disabled in config
+    if (!popup.enabled) return;
+
     // Check if user has already subscribed or dismissed
     const hasSubscribed = localStorage.getItem("insider_subscribed");
     const lastDismissed = localStorage.getItem("popup_dismissed");
@@ -27,13 +32,14 @@ const InsiderReminderPopup = () => {
       if (daysSinceDismissed < 7) return;
     }
 
-    // Show popup after 15 seconds
+    // Show popup after configured delay (default 15 seconds)
+    const delayMs = (popup.delaySeconds || 15) * 1000;
     const timer = setTimeout(() => {
       setShowMainDialog(true);
-    }, 15000);
+    }, delayMs);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [popup.enabled, popup.delaySeconds]);
 
   const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,10 +96,11 @@ const InsiderReminderPopup = () => {
       <Dialog open={showMainDialog} onOpenChange={(open) => !open && handleDismiss()}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Wait! Don't Miss Out 🌟</DialogTitle>
+            <DialogTitle className="text-2xl">
+              {popup.title || "Wait! Don't Miss Out 🌟"}
+            </DialogTitle>
             <DialogDescription className="text-base">
-              Join our exclusive Insider's List and be the first to discover where faith meets fashion. 
-              Get early access, special offers, and inspiration delivered to your inbox.
+              {popup.message || "Join our exclusive Insider's List and be the first to discover where faith meets fashion. Get early access, special offers, and inspiration delivered to your inbox."}
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEmailSubmit} className="space-y-4 mt-4">
@@ -107,7 +114,7 @@ const InsiderReminderPopup = () => {
             />
             <div className="flex gap-2">
               <Button type="submit" className="flex-1">
-                Join Now
+                {popup.ctaText || "Join Now"}
               </Button>
               <Button type="button" variant="outline" onClick={handleDismiss}>
                 Maybe Later

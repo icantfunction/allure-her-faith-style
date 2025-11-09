@@ -17,6 +17,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/auth/AuthContext";
 import ProtectedRoute from "@/auth/ProtectedRoute";
 import { usePageVisitor } from "@/hooks/usePageVisitor";
+import { SiteConfigProvider } from "@/contexts/SiteConfigContext";
 
 const queryClient = new QueryClient();
 
@@ -47,7 +48,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppContent />
+          <SiteConfigProvider>
+            <AppContent />
+          </SiteConfigProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

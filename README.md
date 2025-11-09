@@ -1,8 +1,4 @@
-# Welcome to your Scalehaus project
-
-## Project info
-
-**URL**: https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647
+# Welcome to my Scalehaus project
 
 ## How can I edit this code?
 
@@ -16,7 +12,7 @@ Changes made via Scalehaus will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in the testing environment.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 

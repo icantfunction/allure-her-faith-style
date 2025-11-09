@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { subscribeEmail } from "@/api/allureherApi";
 
 
 const Hero = () => {
@@ -53,25 +54,17 @@ const Hero = () => {
     setShowDevotionalsDialog(true);
   };
 
-  const submitToZapier = async (wantsDevotionals: boolean) => {
+  const submitToBackend = async (wantsDevotionals: boolean) => {
     setIsLoading(true);
     setShowDevotionalsDialog(false);
 
     try {
-      await fetch("https://hooks.zapier.com/hooks/catch/23791564/um92syy/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify({
-          email: pendingEmail,
-          timestamp: new Date().toISOString(),
-          source: "allure_her_insider",
-          wants_devotionals: wantsDevotionals,
-        }),
-      });
-
+      // Subscribe via AWS backend
+      await subscribeEmail(pendingEmail, "hero");
+      
+      // Store preference for future features
+      localStorage.setItem(`subscriber_${pendingEmail}_devotionals`, String(wantsDevotionals));
+      
       toast({
         title: "Welcome to the insider list!",
         description: wantsDevotionals 
@@ -82,11 +75,11 @@ const Hero = () => {
       setEmail("");
       setPendingEmail("");
       setShowEmailForm(false);
-    } catch (error) {
-      console.error("Error submitting email:", error);
+    } catch (error: any) {
+      console.error("Error subscribing:", error);
       toast({
-        title: "Error",
-        description: "Failed to submit email. Please try again.",
+        title: "Subscription failed",
+        description: error.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -105,10 +98,10 @@ const Hero = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => submitToZapier(false)} disabled={isLoading}>
+            <Button variant="outline" onClick={() => submitToBackend(false)} disabled={isLoading}>
               No, just updates
             </Button>
-            <Button onClick={() => submitToZapier(true)} disabled={isLoading}>
+            <Button onClick={() => submitToBackend(true)} disabled={isLoading}>
               Yes, include devotionals
             </Button>
           </DialogFooter>

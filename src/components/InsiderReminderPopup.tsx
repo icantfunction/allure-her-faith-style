@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { subscribeEmail } from "@/api/allureherApi";
 
 const InsiderReminderPopup = () => {
   const [showMainDialog, setShowMainDialog] = useState(false);
@@ -49,24 +50,14 @@ const InsiderReminderPopup = () => {
     setShowDevotionalsDialog(true);
   };
 
-  const submitToZapier = async (wantsDevotionals: boolean) => {
+  const submitToBackend = async (wantsDevotionals: boolean) => {
     setIsSubmitting(true);
     try {
-      await fetch("https://hooks.zapier.com/hooks/catch/23791564/um92syy/", {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: pendingEmail,
-          timestamp: new Date().toISOString(),
-          source: "timed_popup_reminder",
-          devotionals: wantsDevotionals ? "yes" : "no",
-        }),
-      });
-
+      await subscribeEmail(pendingEmail, "popup");
+      
+      localStorage.setItem(`subscriber_${pendingEmail}_devotionals`, String(wantsDevotionals));
       localStorage.setItem("insider_subscribed", "true");
+      
       setShowDevotionalsDialog(false);
       setPendingEmail("");
       setEmail("");
@@ -77,10 +68,11 @@ const InsiderReminderPopup = () => {
           ? "You'll receive exclusive updates and weekly devotionals."
           : "You'll receive exclusive updates and early access.",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error subscribing:", error);
       toast({
-        title: "Oops!",
-        description: "Something went wrong. Please try again.",
+        title: "Subscription failed",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -135,14 +127,14 @@ const InsiderReminderPopup = () => {
           </DialogHeader>
           <div className="flex gap-2 mt-4">
             <Button
-              onClick={() => submitToZapier(true)}
+              onClick={() => submitToBackend(true)}
               disabled={isSubmitting}
               className="flex-1"
             >
               Yes, send devotionals
             </Button>
             <Button
-              onClick={() => submitToZapier(false)}
+              onClick={() => submitToBackend(false)}
               disabled={isSubmitting}
               variant="outline"
               className="flex-1"

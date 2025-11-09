@@ -1,5 +1,36 @@
 // src/api/allureherApi.ts
 
+// ===== TYPE DEFINITIONS =====
+
+export type Subscriber = {
+  siteId: string;
+  email: string;
+  subscribedAt: string | null;
+  status: "subscribed" | "unsubscribed";
+  source?: string | null;
+};
+
+export type CampaignStats = {
+  totalRecipients: number;
+  successCount: number;
+  failedCount: number;
+};
+
+export type CreateCampaignResponse = {
+  campaignId: string;
+  stats: CampaignStats;
+};
+
+export type Campaign = {
+  campaignId: string;
+  siteId: string;
+  subject: string;
+  createdAt: string;
+  updatedAt: string;
+  status: "sent";
+  stats: CampaignStats;
+};
+
 // ----- Fixed per your backend -----
 const SITE_ID = import.meta.env.VITE_SITE_ID ?? "my-site";
 const API_BASE =
@@ -64,7 +95,7 @@ async function request<T = any>(
 // ===== PUBLIC ENDPOINTS =====
 
 // POST /public/email/subscribe  (204 on success)
-export async function subscribeEmail(email: string, wantsDevotionals?: boolean): Promise<void> {
+export async function subscribeEmail(email: string, source?: string): Promise<void> {
   const trimmed = email.trim();
   if (!trimmed) throw new Error("Email is required");
 
@@ -73,7 +104,21 @@ export async function subscribeEmail(email: string, wantsDevotionals?: boolean):
     body: JSON.stringify({ 
       siteId: SITE_ID, 
       email: trimmed,
-      wants_devotionals: wantsDevotionals ?? false 
+      ...(source && { source })
+    }),
+  });
+}
+
+// POST /public/email/unsubscribe  (204 on success)
+export async function unsubscribeEmail(email: string): Promise<void> {
+  const trimmed = email.trim();
+  if (!trimmed) throw new Error("Email is required");
+
+  await request("/public/email/unsubscribe", {
+    method: "POST",
+    body: JSON.stringify({ 
+      siteId: SITE_ID, 
+      email: trimmed
     }),
   });
 }
@@ -189,7 +234,7 @@ export async function adminDeleteProduct(productId: string): Promise<void> {
 
 // GET /admin/email/subscribers?siteId=...
 export async function adminListSubscribers() {
-  return request<any[]>(
+  return request<Subscriber[]>(
     `/admin/email/subscribers?siteId=${encodeURIComponent(SITE_ID)}`,
     {},
     "admin"
@@ -198,20 +243,19 @@ export async function adminListSubscribers() {
 
 // GET /admin/email/campaigns?siteId=...
 export async function adminListEmailCampaigns() {
-  return request<any[]>(
+  return request<Campaign[]>(
     `/admin/email/campaigns?siteId=${encodeURIComponent(SITE_ID)}`,
     {},
     "admin"
   );
 }
 
-// POST /admin/email/campaigns   (create + schedule/send)
+// POST /admin/email/campaigns   (create + send immediately)
 export async function adminCreateEmailCampaign(input: {
   subject: string;
   bodyHtml: string;
-  sendAtIso?: string | null; // null = send immediately (depending on backend)
 }) {
-  return request<{ campaignId: string }>(
+  return request<CreateCampaignResponse>(
     "/admin/email/campaigns",
     {
       method: "POST",
@@ -219,7 +263,7 @@ export async function adminCreateEmailCampaign(input: {
         siteId: SITE_ID,
         subject: input.subject,
         bodyHtml: input.bodyHtml,
-        sendAt: input.sendAtIso ?? null,
+        // sendAt removed - backend only supports immediate send for now
       }),
     },
     "admin"

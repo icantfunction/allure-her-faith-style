@@ -7,6 +7,7 @@ import {
   Palette,
   BarChart3,
   Mail,
+  Users,
   LogOut,
   Menu,
   X,
@@ -19,6 +20,7 @@ const navItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Products", url: "/admin/products", icon: ShoppingBag },
   { title: "Email & Subscribers", url: "/admin/emails", icon: Mail },
+  { title: "Ambassadors", url: "/admin/ambassadors", icon: Users },
   { title: "Site Config", url: "/admin/config", icon: Palette },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];

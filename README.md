@@ -4,10 +4,6 @@
 
 There are several ways of editing your application.
 
-**Use Scalehaus**
-
-Simply visit the [Scalehaus Project](https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647) and start prompting.
-
 Changes made via Scalehaus will be committed automatically to this repo.
 
 **Use your preferred IDE**

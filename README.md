@@ -52,11 +52,7 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
-
-Simply open [Scalehaus](https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my Scalehaus project?
 
 Yes, you can!
 

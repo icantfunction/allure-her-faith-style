@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getIdToken, signIn as doSignIn, signOut as doSignOut } from "./cognito";
+import { setAdminToken, clearAdminToken } from "@/api/allureherApi";
 
 type AuthState = {
   authed: boolean;
@@ -27,10 +28,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const t = await getIdToken();
         setIdToken(t);
+        setAdminToken(t); // Sync token for allureherApi
         setAuthed(true);
       } catch {
         setAuthed(false);
         setIdToken(null);
+        clearAdminToken(); // Ensure clean state
       } finally {
         setLoading(false);
       }
@@ -43,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await doSignIn(u, p);
       const t = await getIdToken();
       setIdToken(t);
+      setAdminToken(t); // Sync token for allureherApi
       setAuthed(true);
     } finally {
       setLoading(false);
@@ -51,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = () => {
     doSignOut();
+    clearAdminToken(); // Clear token for allureherApi
     setAuthed(false);
     setIdToken(null);
   };

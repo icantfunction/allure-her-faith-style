@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Welcome to your Scalehaus project
 
 ## Project info
 
@@ -8,11 +8,11 @@
 
 There are several ways of editing your application.
 
-**Use Lovable**
+**Use Scalehaus**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647) and start prompting.
+Simply visit the [Scalehaus Project](https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+Changes made via Scalehaus will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
@@ -62,7 +62,7 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647) and click on Share -> Publish.
+Simply open [Scalehaus](https://lovable.dev/projects/985822e7-68f1-4a05-8d9f-50bef7320647) and click on Share -> Publish.
 
 ## Can I connect a custom domain to my Lovable project?
 
@@ -70,4 +70,4 @@ Yes, you can!
 
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Read more here: [Setting up a custom domain](https://docs.scalehaus.dev/tips-tricks/custom-domain#step-by-step-guide)

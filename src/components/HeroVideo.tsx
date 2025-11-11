@@ -40,7 +40,7 @@ export function HeroVideo() {
           muted
           playsInline
           preload="metadata"
-          className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-auto min-h-full object-cover scale-110"
+          className="absolute top-[25%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-auto min-h-full object-cover scale-110"
         >
           <source src={HERO_VIDEO_URL} type="video/mp4" />
         </video>

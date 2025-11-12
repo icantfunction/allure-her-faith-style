@@ -1,0 +1,138 @@
+const API_BASE_URL = "https://d1pqkh0r4pj29.cloudfront.net";
+const SITE_ID = "my-site";
+
+export type Subscriber = {
+  email: string;
+  createdAt: string;
+  updatedAt: string;
+  source: string | null;
+};
+
+export type CampaignStats = {
+  totalRecipients: number;
+  successCount: number;
+  failedCount: number;
+};
+
+export type Campaign = {
+  siteId: string;
+  campaignId: string;
+  name: string;
+  subject: string;
+  bodyHtml: string;
+  sendAt?: string | null;
+  status: "draft" | "sent" | "failed";
+  createdAt: string;
+  updatedAt: string;
+  stats?: CampaignStats;
+};
+
+export type CreateCampaignResponse = {
+  campaignId: string;
+  status: "draft" | "sent" | "failed";
+  stats?: CampaignStats;
+};
+
+async function getAuthToken(): Promise<string | null> {
+  try {
+    const mod = await import("@/auth/cognito");
+    return await mod.getIdToken();
+  } catch {
+    return null;
+  }
+}
+
+export async function adminListSubscribers() {
+  const token = await getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await fetch(
+    `${API_BASE_URL}/admin/email/subscribers?siteId=${SITE_ID}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to load subscribers: ${res.status} ${text}`);
+  }
+  
+  const json = await res.json();
+  return json as {
+    items: Subscriber[];
+    nextToken: string | null;
+  };
+}
+
+export async function adminListCampaigns() {
+  const token = await getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const res = await fetch(
+    `${API_BASE_URL}/admin/email/campaigns?siteId=${SITE_ID}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+  
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to load campaigns: ${res.status} ${text}`);
+  }
+  
+  const json = await res.json();
+  return json as Campaign[];
+}
+
+export async function adminCreateCampaign(input: {
+  name: string;
+  subject: string;
+  bodyHtml: string;
+  sendAtUtc?: string;
+}) {
+  const token = await getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const body: any = {
+    siteId: SITE_ID,
+    name: input.name,
+    subject: input.subject,
+    bodyHtml: input.bodyHtml,
+  };
+  
+  if (input.sendAtUtc) {
+    body.sendAt = input.sendAtUtc;
+  }
+
+  const res = await fetch(`${API_BASE_URL}/admin/email/campaigns`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Failed to create campaign: ${res.status} ${text}`);
+  }
+
+  const json = await res.json();
+  return json as CreateCampaignResponse;
+}
+
+export function localToUtcIso(local: string): string {
+  // local is "YYYY-MM-DDTHH:mm"
+  const [datePart, timePart] = local.split("T");
+  if (!datePart || !timePart) throw new Error("Invalid datetime");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  const dt = new Date(year, month - 1, day, hour, minute, 0);
+  return dt.toISOString();
+}

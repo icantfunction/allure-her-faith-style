@@ -19,19 +19,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
-  adminListSubscribers,
-  adminListEmailCampaigns,
   unsubscribeEmail,
   subscribeEmail,
-  type Subscriber,
-  type Campaign,
+  type Subscriber as LegacySubscriber,
 } from "@/api/allureherApi";
+import {
+  adminListSubscribers,
+  adminListCampaigns,
+  type Campaign,
+} from "@/api/email";
+import { Badge } from "@/components/ui/badge";
 import CampaignComposer from "@/components/admin/CampaignComposer";
 
 export default function EmailManagement() {
   const { toast } = useToast();
   const { idToken } = useAuth();
-  const [subscribers, setSubscribers] = React.useState<Subscriber[]>([]);
+  const [subscribers, setSubscribers] = React.useState<LegacySubscriber[]>([]);
   const [campaigns, setCampaigns] = React.useState<Campaign[]>([]);
   const [loadingSubscribers, setLoadingSubscribers] = React.useState(true);
   const [loadingCampaigns, setLoadingCampaigns] = React.useState(true);
@@ -48,7 +51,15 @@ export default function EmailManagement() {
     try {
       setLoadingSubscribers(true);
       const data = await adminListSubscribers();
-      setSubscribers(data || []);
+      // Map new API response to legacy format
+      const legacySubscribers: LegacySubscriber[] = (data.items || []).map((item) => ({
+        siteId: "my-site",
+        email: item.email,
+        subscribedAt: item.createdAt,
+        source: item.source || "unknown",
+        status: "subscribed" as const,
+      }));
+      setSubscribers(legacySubscribers);
     } catch (error: any) {
       toast({
         title: "Error loading subscribers",
@@ -63,7 +74,7 @@ export default function EmailManagement() {
   const loadCampaigns = async () => {
     try {
       setLoadingCampaigns(true);
-      const data = await adminListEmailCampaigns();
+      const data = await adminListCampaigns();
       setCampaigns(data || []);
     } catch (error: any) {
       toast({
@@ -93,7 +104,7 @@ export default function EmailManagement() {
     loadCampaigns();
   };
 
-  const handleStatusAction = (subscriber: Subscriber) => {
+  const handleStatusAction = (subscriber: LegacySubscriber) => {
     const action = subscriber.status === "subscribed" ? "unsubscribe" : "resubscribe";
     setConfirmDialog({ open: true, email: subscriber.email, action });
   };
@@ -174,10 +185,13 @@ export default function EmailManagement() {
 
         <Card className="border-border shadow-luxury">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Campaigns Sent</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">Total Campaigns</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{campaigns.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {campaigns.filter((c) => c.status === "draft").length} scheduled
+            </p>
           </CardContent>
         </Card>
       </motion.div>
@@ -306,7 +320,11 @@ export default function EmailManagement() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="font-heading">Campaign History</CardTitle>
-                    <CardDescription>{campaigns.length} campaign(s) sent</CardDescription>
+                    <CardDescription>
+                      {campaigns.length} campaign(s) total
+                      {campaigns.filter((c) => c.status === "draft").length > 0 &&
+                        ` • ${campaigns.filter((c) => c.status === "draft").length} scheduled`}
+                    </CardDescription>
                   </div>
                   <Button onClick={() => setComposerOpen(true)} className="gap-2">
                     <Send className="h-4 w-4" />
@@ -332,31 +350,74 @@ export default function EmailManagement() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead>Name</TableHead>
                           <TableHead>Subject</TableHead>
-                          <TableHead>Sent At</TableHead>
-                          <TableHead className="text-right">Total Recipients</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Scheduled/Sent Time</TableHead>
+                          <TableHead className="text-right">Recipients</TableHead>
                           <TableHead className="text-right">Success</TableHead>
                           <TableHead className="text-right">Failed</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {campaigns.map((campaign) => (
-                          <TableRow key={campaign.campaignId}>
-                            <TableCell className="font-medium">{campaign.subject}</TableCell>
-                            <TableCell className="text-muted-foreground">
-                              {new Date(campaign.createdAt).toLocaleString()}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {campaign.stats?.totalRecipients ?? "-"}
-                            </TableCell>
-                            <TableCell className="text-right text-green-600 dark:text-green-400">
-                              {campaign.stats?.successCount ?? "-"}
-                            </TableCell>
-                            <TableCell className="text-right text-red-600 dark:text-red-400">
-                              {campaign.stats?.failedCount ?? "-"}
-                            </TableCell>
-                          </TableRow>
-                        ))}
+                        {campaigns.map((campaign) => {
+                          const now = new Date();
+                          const sendAt = campaign.sendAt ? new Date(campaign.sendAt) : null;
+                          const isScheduledFuture = sendAt && sendAt > now;
+                          const isPendingDispatch = campaign.status === "draft" && sendAt && sendAt <= now;
+
+                          return (
+                            <TableRow key={campaign.campaignId}>
+                              <TableCell className="font-medium">{campaign.name}</TableCell>
+                              <TableCell>{campaign.subject}</TableCell>
+                              <TableCell>
+                                {campaign.status === "sent" ? (
+                                  <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20">
+                                    Sent
+                                  </Badge>
+                                ) : campaign.status === "draft" && isScheduledFuture ? (
+                                  <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20">
+                                    Scheduled
+                                  </Badge>
+                                ) : isPendingDispatch ? (
+                                  <Badge className="bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-500/20">
+                                    Pending Dispatch
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive">Failed</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {sendAt ? (
+                                  <div className="space-y-1">
+                                    <div className="text-sm">
+                                      <span className="font-medium">Scheduled:</span> {sendAt.toLocaleString()}
+                                    </div>
+                                    {campaign.status === "sent" && (
+                                      <div className="text-xs opacity-70">
+                                        <span className="font-medium">Sent:</span>{" "}
+                                        {new Date(campaign.createdAt).toLocaleString()}
+                                      </div>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="text-sm">
+                                    {new Date(campaign.createdAt).toLocaleString()}
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {campaign.stats?.totalRecipients ?? "-"}
+                              </TableCell>
+                              <TableCell className="text-right text-green-600 dark:text-green-400">
+                                {campaign.stats?.successCount ?? "-"}
+                              </TableCell>
+                              <TableCell className="text-right text-red-600 dark:text-red-400">
+                                {campaign.stats?.failedCount ?? "-"}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>

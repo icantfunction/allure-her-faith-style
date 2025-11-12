@@ -18,6 +18,34 @@ interface CampaignComposerProps {
   onSuccess?: () => void;
 }
 
+// Sanitize HTML for safe preview rendering
+const sanitizeHtmlForPreview = (html: string): string => {
+  let sanitized = html;
+  
+  // Remove AMP boilerplate style that hides body
+  sanitized = sanitized.replace(
+    /<style\s+amp4email-boilerplate>[\s\S]*?<\/style>/gi,
+    ''
+  );
+  
+  // Remove AMP scripts (won't work in preview anyway)
+  sanitized = sanitized.replace(
+    /<script\s+[^>]*src="https:\/\/cdn\.ampproject\.org[^>]*><\/script>/gi,
+    ''
+  );
+  
+  // Remove AMP-specific attributes
+  sanitized = sanitized.replace(/⚡4email/g, '');
+  
+  // Force body visibility
+  sanitized = sanitized.replace(
+    '</head>',
+    '<style>body{visibility:visible !important;}</style></head>'
+  );
+  
+  return sanitized;
+};
+
 export default function CampaignComposer({ open, onOpenChange, onSuccess }: CampaignComposerProps) {
   const { toast } = useToast();
   const [name, setName] = React.useState("");
@@ -338,11 +366,15 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
                     </div>
                     <div
                       className="bg-white p-4 min-h-[400px] max-h-[500px] overflow-y-auto"
-                      dangerouslySetInnerHTML={{ __html: bodyHtml || "<p class='text-muted-foreground'>No content to preview yet...</p>" }}
+                      dangerouslySetInnerHTML={{ 
+                        __html: sanitizeHtmlForPreview(bodyHtml) || "<p class='text-muted-foreground'>No content to preview yet...</p>" 
+                      }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground text-center">
                     {previewMode === "mobile" ? "📱 Mobile view (375px width)" : "🖥️ Desktop view (full width)"}
+                    {bodyHtml.includes('⚡4email') && " • AMP features removed for safe preview"}
+                    {bodyHtml.includes('yourdomain.com') && " • Replace placeholder image URLs with your actual hosted images"}
                   </p>
                 </TabsContent>
               </Tabs>

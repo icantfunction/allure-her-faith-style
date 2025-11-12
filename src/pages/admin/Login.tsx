@@ -120,6 +120,16 @@ export default function AdminLogin() {
               </div>
             </div>
 
+            {/* Forgot Password Link */}
+            <div className="text-right">
+              <a
+                href="/admin/forgot"
+                className="text-sm text-primary hover:text-primary/80 transition-colors"
+              >
+                Forgot password?
+              </a>
+            </div>
+
             {/* Error Message */}
             {err && (
               <motion.div

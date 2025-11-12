@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, CheckCircle2, Calendar, Clock, Eye, Code, Sparkles, Plus, Smartphone, Monitor } from "lucide-react";
+import { Loader2, Send, CheckCircle2, Calendar, Clock, Eye, Code, Sparkles, Plus, Smartphone, Monitor, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminCreateCampaign, localToUtcIso, type CreateCampaignResponse } from "@/api/email";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EMAIL_TEMPLATES, PERSONALIZATION_VARIABLES, HTML_SNIPPETS } from "@/lib/emailTemplates";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface CampaignComposerProps {
   open: boolean;
@@ -229,29 +230,41 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
                     ))}
                   </div>
 
-                  {/* Variable Inserter */}
-                  <div className="flex gap-2 flex-wrap">
-                    <Label className="w-full text-xs text-muted-foreground">Insert Variables:</Label>
-                    {PERSONALIZATION_VARIABLES.map((variable) => (
-                      <Button
-                        key={variable.token}
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => {
-                          const textarea = document.getElementById("bodyHtml") as HTMLTextAreaElement;
-                          const cursorPos = textarea.selectionStart;
-                          const textBefore = bodyHtml.substring(0, cursorPos);
-                          const textAfter = bodyHtml.substring(cursorPos);
-                          setBodyHtml(textBefore + variable.token + textAfter);
-                        }}
-                        disabled={sending}
-                        className="text-xs"
-                        title={variable.description}
-                      >
-                        {variable.token}
+                  {/* Variable Inserter - Collapsible */}
+                  <Collapsible defaultOpen={false}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" size="sm" className="w-full justify-between text-xs">
+                        <span className="flex items-center gap-2">
+                          <Sparkles className="h-3 w-3" />
+                          Insert Variables
+                        </span>
+                        <ChevronDown className="h-4 w-4" />
                       </Button>
-                    ))}
-                  </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-2">
+                      <div className="flex gap-2 flex-wrap border rounded-lg p-3 bg-muted/30">
+                        {PERSONALIZATION_VARIABLES.map((variable) => (
+                          <Button
+                            key={variable.token}
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => {
+                              const textarea = document.getElementById("bodyHtml") as HTMLTextAreaElement;
+                              const cursorPos = textarea.selectionStart;
+                              const textBefore = bodyHtml.substring(0, cursorPos);
+                              const textAfter = bodyHtml.substring(cursorPos);
+                              setBodyHtml(textBefore + variable.token + textAfter);
+                            }}
+                            disabled={sending}
+                            className="text-xs"
+                            title={variable.description}
+                          >
+                            {variable.token}
+                          </Button>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
 
                   {/* HTML Snippets */}
                   <div className="flex gap-2 flex-wrap">

@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, CheckCircle2, Calendar, Clock } from "lucide-react";
+import { Loader2, Send, CheckCircle2, Calendar, Clock, Eye, Code, Sparkles, Plus, Smartphone, Monitor } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { adminCreateCampaign, localToUtcIso, type CreateCampaignResponse } from "@/api/email";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EMAIL_TEMPLATES, PERSONALIZATION_VARIABLES, HTML_SNIPPETS } from "@/lib/emailTemplates";
 
 interface CampaignComposerProps {
   open: boolean;
@@ -24,6 +26,7 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
   const [sendAtLocal, setSendAtLocal] = React.useState("");
   const [sending, setSending] = React.useState(false);
   const [result, setResult] = React.useState<CreateCampaignResponse | null>(null);
+  const [previewMode, setPreviewMode] = React.useState<"desktop" | "mobile">("desktop");
 
   const handleReset = () => {
     setName("");
@@ -124,7 +127,7 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-heading">Create Email Campaign</DialogTitle>
           <DialogDescription>
@@ -194,20 +197,142 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bodyHtml">Email Body (HTML)</Label>
-              <Textarea
-                id="bodyHtml"
-                placeholder="<h1>Hello!</h1><p>Check out our new collection...</p>"
-                value={bodyHtml}
-                onChange={(e) => setBodyHtml(e.target.value)}
-                rows={10}
-                disabled={sending}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Use HTML tags like &lt;h1&gt;, &lt;p&gt;, &lt;a href="..."&gt;, &lt;img src="..."&gt; to format your
-                email.
-              </p>
+              <Label>Email Content</Label>
+              <Tabs defaultValue="edit" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="edit" className="flex items-center gap-2">
+                    <Code className="h-4 w-4" />
+                    Edit HTML
+                  </TabsTrigger>
+                  <TabsTrigger value="preview" className="flex items-center gap-2">
+                    <Eye className="h-4 w-4" />
+                    Preview
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="edit" className="space-y-3">
+                  {/* Template Selector */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Label className="w-full text-xs text-muted-foreground">Quick Start:</Label>
+                    {Object.entries(EMAIL_TEMPLATES).map(([key, template]) => (
+                      <Button
+                        key={key}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setBodyHtml(template.html)}
+                        disabled={sending}
+                        className="text-xs"
+                      >
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        {template.name}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Variable Inserter */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Label className="w-full text-xs text-muted-foreground">Insert Variables:</Label>
+                    {PERSONALIZATION_VARIABLES.map((variable) => (
+                      <Button
+                        key={variable.token}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          const textarea = document.getElementById("bodyHtml") as HTMLTextAreaElement;
+                          const cursorPos = textarea.selectionStart;
+                          const textBefore = bodyHtml.substring(0, cursorPos);
+                          const textAfter = bodyHtml.substring(cursorPos);
+                          setBodyHtml(textBefore + variable.token + textAfter);
+                        }}
+                        disabled={sending}
+                        className="text-xs"
+                        title={variable.description}
+                      >
+                        {variable.token}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* HTML Snippets */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Label className="w-full text-xs text-muted-foreground">Insert Elements:</Label>
+                    {Object.entries(HTML_SNIPPETS).map(([key, snippet]) => (
+                      <Button
+                        key={key}
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const textarea = document.getElementById("bodyHtml") as HTMLTextAreaElement;
+                          const cursorPos = textarea.selectionStart;
+                          const textBefore = bodyHtml.substring(0, cursorPos);
+                          const textAfter = bodyHtml.substring(cursorPos);
+                          setBodyHtml(textBefore + "\n" + snippet.html + "\n" + textAfter);
+                        }}
+                        disabled={sending}
+                        className="text-xs"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        {snippet.name}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* HTML Textarea */}
+                  <Textarea
+                    id="bodyHtml"
+                    placeholder="<h1>Hello!</h1><p>Check out our new collection...</p>"
+                    value={bodyHtml}
+                    onChange={(e) => setBodyHtml(e.target.value)}
+                    rows={12}
+                    disabled={sending}
+                    className="font-mono text-sm"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Use the buttons above to insert templates, variables, and common elements.
+                  </p>
+                </TabsContent>
+
+                <TabsContent value="preview" className="space-y-3">
+                  {/* Preview Mode Toggle */}
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">Preview Mode:</Label>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={previewMode === "desktop" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPreviewMode("desktop")}
+                      >
+                        <Monitor className="h-4 w-4 mr-1" />
+                        Desktop
+                      </Button>
+                      <Button
+                        variant={previewMode === "mobile" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPreviewMode("mobile")}
+                      >
+                        <Smartphone className="h-4 w-4 mr-1" />
+                        Mobile
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Preview Container */}
+                  <div className={`border rounded-lg overflow-hidden ${
+                    previewMode === "mobile" ? "max-w-[375px] mx-auto" : "w-full"
+                  }`}>
+                    <div className="bg-muted px-3 py-2 text-xs text-muted-foreground border-b">
+                      Subject: {subject || "(No subject)"}
+                    </div>
+                    <div
+                      className="bg-white p-4 min-h-[400px] max-h-[500px] overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: bodyHtml || "<p class='text-muted-foreground'>No content to preview yet...</p>" }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    {previewMode === "mobile" ? "📱 Mobile view (375px width)" : "🖥️ Desktop view (full width)"}
+                  </p>
+                </TabsContent>
+              </Tabs>
             </div>
 
             <div className="space-y-3">

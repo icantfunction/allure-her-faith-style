@@ -67,6 +67,57 @@ export async function adminListSubscribers() {
   };
 }
 
+export async function adminListAllSubscribers(): Promise<Subscriber[]> {
+  const token = await getAuthToken();
+  if (!token) throw new Error("Not authenticated");
+
+  const allSubscribers: Subscriber[] = [];
+  let nextToken: string | null = null;
+  let loopGuard = 0;
+  const MAX_PAGES = 100;
+
+  do {
+    const url = new URL(`${API_BASE_URL}/admin/email/subscribers`);
+    url.searchParams.set("siteId", SITE_ID);
+    if (nextToken) {
+      url.searchParams.set("nextToken", nextToken);
+    }
+
+    const res = await fetch(url.toString(), {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (res.status === 403) {
+      throw new Error(
+        `Access forbidden. Verify SITE_ID matches backend configuration ("my-site").`
+      );
+    }
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Failed to load subscribers: ${res.status} ${text}`);
+    }
+
+    const json = await res.json() as {
+      items: Subscriber[];
+      nextToken: string | null;
+    };
+
+    allSubscribers.push(...(json.items || []));
+    nextToken = json.nextToken;
+    loopGuard++;
+
+    if (loopGuard >= MAX_PAGES) {
+      console.warn(`Reached maximum pagination limit (${MAX_PAGES} pages). There may be more subscribers.`);
+      break;
+    }
+  } while (nextToken);
+
+  return allSubscribers;
+}
+
 export async function adminListCampaigns() {
   const token = await getAuthToken();
   if (!token) throw new Error("Not authenticated");

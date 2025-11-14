@@ -27,7 +27,7 @@ import {
   type Subscriber as LegacySubscriber,
 } from "@/api/allureherApi";
 import {
-  adminListSubscribers,
+  adminListAllSubscribers,
   adminListCampaigns,
   type Campaign,
 } from "@/api/email";
@@ -49,6 +49,7 @@ export default function EmailManagement() {
     email: string;
     action: "unsubscribe" | "resubscribe";
   }>({ open: false, email: "", action: "unsubscribe" });
+  const [paginationStatus, setPaginationStatus] = React.useState<string>("");
 
   const exportSubscribersCSV = (data: LegacySubscriber[]) => {
     const csvData = data.map(sub => ({
@@ -96,9 +97,14 @@ export default function EmailManagement() {
   const loadSubscribers = async () => {
     try {
       setLoadingSubscribers(true);
-      const data = await adminListSubscribers();
+      setPaginationStatus("Loading subscribers...");
+      
+      const allItems = await adminListAllSubscribers();
+      
+      setPaginationStatus(`Loaded ${allItems.length} subscribers`);
+      
       // Map new API response to legacy format
-      const legacySubscribers: LegacySubscriber[] = (data.items || []).map((item) => ({
+      const legacySubscribers: LegacySubscriber[] = allItems.map((item) => ({
         siteId: "my-site",
         email: item.email,
         subscribedAt: item.createdAt,
@@ -112,8 +118,10 @@ export default function EmailManagement() {
         description: error.message || "Failed to load subscribers",
         variant: "destructive",
       });
+      setPaginationStatus("");
     } finally {
       setLoadingSubscribers(false);
+      setTimeout(() => setPaginationStatus(""), 2000);
     }
   };
 
@@ -269,6 +277,9 @@ export default function EmailManagement() {
                     <CardTitle className="font-heading">Subscriber List</CardTitle>
                     <CardDescription>
                       {filteredSubscribers.length} subscriber(s) found
+                      {paginationStatus && (
+                        <span className="ml-2 text-primary font-medium">• {paginationStatus}</span>
+                      )}
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">

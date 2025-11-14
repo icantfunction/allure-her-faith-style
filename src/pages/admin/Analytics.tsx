@@ -3,7 +3,11 @@ import { AdminAPI } from "../../lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { motion } from "framer-motion";
-import { TrendingUp, Calendar, Eye, BarChart3 } from "lucide-react";
+import { TrendingUp, Calendar, Eye, BarChart3, Download, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function iso(d: Date) { return d.toISOString().slice(0, 10); }
 
@@ -22,6 +26,48 @@ export default function Analytics() {
 
   const totalVisits = rows.reduce((sum, r) => sum + r.count, 0);
   const avgVisits = rows.length > 0 ? Math.round(totalVisits / rows.length) : 0;
+
+  const exportAnalyticsCSV = (data: { date: string; count: number }[]) => {
+    const csvData = data.map(row => ({
+      Date: row.date,
+      'Page Visits': row.count
+    }));
+    
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `analytics_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const exportAnalyticsPDF = (data: { date: string; count: number }[], totalVisits: number, avgVisits: number) => {
+    const doc = new jsPDF();
+    
+    // Add header
+    doc.setFontSize(18);
+    doc.text('Analytics Report', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+    
+    // Add summary stats
+    doc.setFontSize(12);
+    doc.text('Summary (Last 7 Days)', 14, 40);
+    doc.setFontSize(10);
+    doc.text(`Total Visits: ${totalVisits}`, 14, 48);
+    doc.text(`Average Daily Visits: ${avgVisits}`, 14, 54);
+    
+    // Add data table
+    autoTable(doc, {
+      startY: 65,
+      head: [['Date', 'Page Visits']],
+      body: data.map(row => [row.date, row.count.toString()]),
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [57, 72, 171] }
+    });
+    
+    doc.save(`analytics_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -50,13 +96,33 @@ export default function Analytics() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <BarChart3 className="h-6 w-6 text-primary" />
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <BarChart3 className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-heading font-semibold text-foreground">Analytics Dashboard</h1>
+              <p className="text-muted-foreground text-sm">Last 7 days performance metrics</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-heading font-semibold text-foreground">Analytics Dashboard</h1>
-            <p className="text-muted-foreground text-sm">Last 7 days performance metrics</p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => exportAnalyticsCSV(rows)}
+              disabled={loading || rows.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportAnalyticsPDF(rows, totalVisits, avgVisits)}
+              disabled={loading || rows.length === 0}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Export PDF
+            </Button>
           </div>
         </div>
       </motion.div>

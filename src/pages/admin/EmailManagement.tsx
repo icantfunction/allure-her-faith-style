@@ -1,6 +1,9 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Mail, Users, Send, Loader2 } from "lucide-react";
+import { Mail, Users, Send, Loader2, Download, FileText } from "lucide-react";
+import Papa from "papaparse";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -46,6 +49,49 @@ export default function EmailManagement() {
     email: string;
     action: "unsubscribe" | "resubscribe";
   }>({ open: false, email: "", action: "unsubscribe" });
+
+  const exportSubscribersCSV = (data: LegacySubscriber[]) => {
+    const csvData = data.map(sub => ({
+      Email: sub.email,
+      Status: sub.status,
+      'Subscribed At': new Date(sub.subscribedAt).toLocaleString(),
+      Source: sub.source || 'Unknown'
+    }));
+    
+    const csv = Papa.unparse(csvData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `subscribers_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const exportSubscribersPDF = (data: LegacySubscriber[]) => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.text('Email Subscribers Report', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+    doc.text(`Total Subscribers: ${data.length}`, 14, 34);
+    
+    // Add table
+    autoTable(doc, {
+      startY: 40,
+      head: [['Email', 'Status', 'Subscribed At', 'Source']],
+      body: data.map(sub => [
+        sub.email,
+        sub.status,
+        new Date(sub.subscribedAt).toLocaleDateString(),
+        sub.source || 'Unknown'
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [57, 72, 171] }
+    });
+    
+    doc.save(`subscribers_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   const loadSubscribers = async () => {
     try {
@@ -225,12 +271,30 @@ export default function EmailManagement() {
                       {filteredSubscribers.length} subscriber(s) found
                     </CardDescription>
                   </div>
-                  <Input
-                    placeholder="Search by email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="max-w-xs"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Search by email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="max-w-xs"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => exportSubscribersCSV(filteredSubscribers)}
+                      disabled={filteredSubscribers.length === 0}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => exportSubscribersPDF(filteredSubscribers)}
+                      disabled={filteredSubscribers.length === 0}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export PDF
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

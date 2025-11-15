@@ -34,5 +34,101 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Analytics tracking with session/visitor IDs and reload detection -->
+    <script>
+(function(){
+  const SITE_ID = "my-site";
+  // Use your own origin (first-party) so fewer blockers drop it:
+  const ORIGIN = location.origin; // e.g., https://shopallureher.com
+
+  function uuid(){
+    if (crypto.randomUUID) return crypto.randomUUID();
+    return (Date.now().toString(36)+Math.random().toString(36).slice(2));
+  }
+
+  // cookies
+  function getCookie(name){
+    return document.cookie.split('; ').find(r=>r.startsWith(name+'='))?.split('=')[1];
+  }
+  function setCookie(name, val, seconds){
+    const d = new Date(); d.setTime(d.getTime() + seconds*1000);
+    document.cookie = `${name}=${val}; path=/; expires=${d.toUTCString()}; SameSite=Lax`;
+  }
+
+  // ensure vid (1 year) and sid (sliding 30 min)
+  let vid = getCookie('vid'); if (!vid){ vid = uuid(); setCookie('vid', vid, 365*24*3600); }
+  function refreshSid(){
+    let sid = getCookie('sid');
+    if (!sid) sid = uuid();
+    setCookie('sid', sid, 30*60); // 30 minutes sliding window
+    return sid;
+  }
+
+  // detect reload (Navigation Timing Level 2)
+  function getNavType(){
+    try {
+      const nav = performance.getEntriesByType('navigation')[0];
+      if (nav && nav.type) return nav.type;           // 'navigate' | 'reload' | 'back_forward' | 'prerender'
+    } catch {}
+    // legacy fallback
+    const pn = performance.navigation || {};
+    if (pn.type === 1) return 'reload';
+    if (pn.type === 2) return 'back_forward';
+    return 'navigate';
+  }
+
+  // prevent duplicate fires on the same path within a session (defense-in-depth)
+  function sentKey(sid, path){ return `pv:${sid}:${path}`; }
+
+  function sendVisit(){
+    const navType = getNavType();
+    if (navType === 'reload') return; // <-- Skip counting refreshes
+
+    const sid = refreshSid();
+    const key = sentKey(sid, location.pathname);
+    if (sessionStorage.getItem(key)) return; // already sent for this path in this session
+    sessionStorage.setItem(key, '1');
+
+    const payload = {
+      siteId: SITE_ID,
+      path: location.pathname,
+      ref: document.referrer || null,
+      navType,
+      sid,
+      vid,
+      eventId: uuid(),
+      ts: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(ORIGIN + "/analytics/visit", blob);
+    } else {
+      // keepalive to survive quick navigations
+      fetch(ORIGIN + "/analytics/visit", {
+        method:"POST",
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+        keepalive:true
+      }).catch(()=>{});
+    }
+  }
+
+  // initial page load
+  sendVisit();
+
+  // SPA route changes (pushState / back-forward)
+  (function(history){
+    const push = history.pushState;
+    history.pushState = function(){
+      const r = push.apply(this, arguments);
+      setTimeout(sendVisit, 0);
+      return r;
+    };
+  })(window.history);
+  window.addEventListener('popstate', ()=> setTimeout(sendVisit, 0));
+})();
+    </script>
   </body>
 </html>

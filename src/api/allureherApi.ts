@@ -97,18 +97,27 @@ async function request<T = any>(
 // ===== PUBLIC ENDPOINTS =====
 
 // POST /public/email/subscribe  (204 on success)
-export async function subscribeEmail(email: string, source?: string): Promise<void> {
+export async function subscribeEmail(email: string, source = "footer"): Promise<void> {
   const trimmed = email.trim();
   if (!trimmed) throw new Error("Email is required");
 
-  await request("/public/email/subscribe", {
+  const res = await fetch(`${API_BASE}/public/email/subscribe`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    // Explicitly avoid credentials for cross-origin to prevent CORS preflight issues
+    credentials: "omit",
+    mode: "cors",
     body: JSON.stringify({ 
       siteId: SITE_ID, 
-      email: trimmed,
-      ...(source && { source })
+      email: trimmed, 
+      source 
     }),
   });
+
+  if (res.status !== 204) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`Subscribe failed (${res.status}): ${msg}`);
+  }
 }
 
 // POST /public/email/unsubscribe  (204 on success)
@@ -116,13 +125,21 @@ export async function unsubscribeEmail(email: string): Promise<void> {
   const trimmed = email.trim();
   if (!trimmed) throw new Error("Email is required");
 
-  await request("/public/email/unsubscribe", {
+  const res = await fetch(`${API_BASE}/public/email/unsubscribe`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+    mode: "cors",
     body: JSON.stringify({ 
       siteId: SITE_ID, 
       email: trimmed
     }),
   });
+
+  if (res.status !== 204) {
+    const msg = await res.text().catch(() => "");
+    throw new Error(`Unsubscribe failed (${res.status}): ${msg}`);
+  }
 }
 
 // GET /public/products?siteId=...

@@ -9,9 +9,7 @@ import { useSiteConfig } from "@/contexts/SiteConfigContext";
 const InsiderReminderPopup = () => {
   const { popup } = useSiteConfig();
   const [showMainDialog, setShowMainDialog] = useState(false);
-  const [showDevotionalsDialog, setShowDevotionalsDialog] = useState(false);
   const [email, setEmail] = useState("");
-  const [pendingEmail, setPendingEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -41,7 +39,7 @@ const InsiderReminderPopup = () => {
     return () => clearTimeout(timer);
   }, [popup.enabled, popup.delaySeconds]);
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes("@")) {
       toast({
@@ -51,28 +49,19 @@ const InsiderReminderPopup = () => {
       });
       return;
     }
-    setPendingEmail(email);
-    setShowMainDialog(false);
-    setShowDevotionalsDialog(true);
-  };
-
-  const submitToBackend = async (wantsDevotionals: boolean) => {
+    
     setIsSubmitting(true);
     try {
-      await subscribeEmail(pendingEmail, "popup");
+      await subscribeEmail(email, "popup");
       
-      localStorage.setItem(`subscriber_${pendingEmail}_devotionals`, String(wantsDevotionals));
       localStorage.setItem("insider_subscribed", "true");
       
-      setShowDevotionalsDialog(false);
-      setPendingEmail("");
+      setShowMainDialog(false);
       setEmail("");
       
       toast({
         title: "Welcome to the Insider's List! 🎉",
-        description: wantsDevotionals 
-          ? "You'll receive exclusive updates and weekly devotionals."
-          : "You'll receive exclusive updates and early access.",
+        description: "You'll receive exclusive updates and early access.",
       });
     } catch (error: any) {
       console.error("Error subscribing:", error);
@@ -113,42 +102,14 @@ const InsiderReminderPopup = () => {
               className="w-full"
             />
             <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
+              <Button type="submit" className="flex-1" disabled={isSubmitting}>
                 {popup.ctaText || "Join Now"}
               </Button>
-              <Button type="button" variant="outline" onClick={handleDismiss}>
+              <Button type="button" variant="outline" onClick={handleDismiss} disabled={isSubmitting}>
                 Maybe Later
               </Button>
             </div>
           </form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showDevotionalsDialog} onOpenChange={setShowDevotionalsDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>One more thing...</DialogTitle>
-            <DialogDescription>
-              Would you like to receive weekly devotionals along with exclusive updates?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex gap-2 mt-4">
-            <Button
-              onClick={() => submitToBackend(true)}
-              disabled={isSubmitting}
-              className="flex-1"
-            >
-              Yes, send devotionals
-            </Button>
-            <Button
-              onClick={() => submitToBackend(false)}
-              disabled={isSubmitting}
-              variant="outline"
-              className="flex-1"
-            >
-              No, just updates
-            </Button>
-          </div>
         </DialogContent>
       </Dialog>
     </>

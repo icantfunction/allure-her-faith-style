@@ -1,4 +1,4 @@
-# Welcome to my Scalehaus project
+# Welcome to my Scalehaus project!
 
 ## How can I edit this code?
 

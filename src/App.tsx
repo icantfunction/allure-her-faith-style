@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Unsubscribe from "./pages/Unsubscribe";
+import ProductDetail from "./pages/ProductDetail";
+import AllProducts from "./pages/AllProducts";
+import Checkout from "./pages/Checkout";
 import AdminHome from "./pages/admin/Home";
 import AdminLogin from "./pages/admin/Login";
 import ForgotPassword from "./pages/admin/ForgotPassword";
@@ -20,6 +23,7 @@ import { AuthProvider } from "@/auth/AuthContext";
 import ProtectedRoute from "@/auth/ProtectedRoute";
 import { usePageVisitor } from "@/hooks/usePageVisitor";
 import { SiteConfigProvider } from "@/contexts/SiteConfigContext";
+import { CartProvider } from "@/contexts/CartContext";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +33,9 @@ const AppContent = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
+      <Route path="/product/:productId" element={<ProductDetail />} />
+      <Route path="/products" element={<AllProducts />} />
+      <Route path="/checkout" element={<Checkout />} />
       <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/forgot" element={<ForgotPassword />} />
@@ -53,7 +60,9 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <SiteConfigProvider>
-            <AppContent />
+            <CartProvider>
+              <AppContent />
+            </CartProvider>
           </SiteConfigProvider>
         </AuthProvider>
       </BrowserRouter>

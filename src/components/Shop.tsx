@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
-import { staggeredFadeIn } from "@/utils/animations";
+import { productGridReveal } from "@/utils/animations";
 import { useEffect, useState } from "react";
 import { animate } from "animejs";
 import { PublicAPI } from "@/lib/api";
@@ -24,7 +24,7 @@ const Shop = () => {
   const navigate = useNavigate();
   
   const productsRef = useAnimeOnScroll({
-    ...staggeredFadeIn,
+    ...productGridReveal,
     targets: '.product-item',
   });
 

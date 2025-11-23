@@ -33,11 +33,16 @@ export interface BannerConfig {
   textColor?: string;
 }
 
+export interface ShopConfig {
+  showViewAllButton?: boolean;
+}
+
 export interface SiteConfigResponse {
   siteId: string;
   theme?: ThemeConfig;
   popup?: PopupConfig;
   banner?: BannerConfig;
+  shop?: ShopConfig;
 }
 
 // ---------- PUBLIC: GET /public/theme ----------
@@ -61,6 +66,7 @@ interface AdminUpdateConfigInput {
   theme?: ThemeConfig;
   popup?: PopupConfig;
   banner?: BannerConfig;
+  shop?: ShopConfig;
 }
 
 /**
@@ -80,6 +86,7 @@ export async function adminUpdateConfig(
   if (input.theme) body.theme = input.theme;
   if (input.popup) body.popup = input.popup;
   if (input.banner) body.banner = input.banner;
+  if (input.shop) body.shop = input.shop;
 
   const res = await fetch(`${API_BASE}/admin/config`, {
     method: "PUT",

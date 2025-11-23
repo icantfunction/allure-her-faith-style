@@ -51,9 +51,14 @@ export const AdminAPI = {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
     }),
-  updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string }>) =>
+  updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string; visible: boolean }>) =>
     apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
       method: "PUT",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
+    }),
+  deleteProduct: (id: string) =>
+    apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      body: JSON.stringify({ siteId: SITE_ID }),
     }),
 };

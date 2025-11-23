@@ -33,6 +33,9 @@ export default function Config() {
   const [bannerBackgroundColor, setBannerBackgroundColor] = React.useState("#000000");
   const [bannerTextColor, setBannerTextColor] = React.useState("#ffffff");
   
+  // Shop config
+  const [showViewAllButton, setShowViewAllButton] = React.useState(true);
+  
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
@@ -65,6 +68,10 @@ export default function Config() {
           setBannerLinkUrl(config.banner.linkUrl || "#");
           setBannerBackgroundColor(config.banner.backgroundColor || "#000000");
           setBannerTextColor(config.banner.textColor || "#ffffff");
+        }
+        
+        if (config.shop) {
+          setShowViewAllButton(config.shop.showViewAllButton ?? true);
         }
       } catch (error) {
         console.error("Failed to load config:", error);
@@ -102,6 +109,9 @@ export default function Config() {
           linkUrl: bannerLinkUrl,
           backgroundColor: bannerBackgroundColor,
           textColor: bannerTextColor,
+        },
+        shop: {
+          showViewAllButton,
         },
       });
       
@@ -513,11 +523,45 @@ export default function Config() {
         </Card>
       </motion.div>
 
+      {/* Shop Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.4 }}
+      >
+        <Card className="border-border shadow-luxury">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Palette className="h-5 w-5 text-primary" />
+              <CardTitle className="font-heading">Shop Settings</CardTitle>
+            </div>
+            <CardDescription>Configure storefront display options</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="shop-view-all" className="text-sm font-medium">
+                  Show "View All Products" Button
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Display a button on the homepage to view all products
+                </p>
+              </div>
+              <Switch
+                id="shop-view-all"
+                checked={showViewAllButton}
+                onCheckedChange={setShowViewAllButton}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Save Button */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.5, delay: 0.5 }}
         className="flex justify-end"
       >
         <Button

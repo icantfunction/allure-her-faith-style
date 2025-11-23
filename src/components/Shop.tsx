@@ -1,16 +1,43 @@
 import { Button } from "@/components/ui/button";
-import product1 from "@/assets/product-1.jpg";
-import product2 from "@/assets/product-2.jpg";
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
 import { staggeredFadeIn } from "@/utils/animations";
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 import { animate } from "animejs";
+import { PublicAPI } from "@/lib/api";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+
+type Product = {
+  productId: string;
+  name: string;
+  price: number;
+  description?: string;
+  imageUrls?: string[];
+  visible?: boolean;
+};
 
 const Shop = () => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { config } = useSiteConfig();
+  const navigate = useNavigate();
+  
   const productsRef = useAnimeOnScroll({
     ...staggeredFadeIn,
     targets: '.product-item',
   });
+
+  useEffect(() => {
+    PublicAPI.listProducts()
+      .then((data) => {
+        // Filter to only visible products and take first 4
+        const visible = data.filter((p: Product) => p.visible !== false).slice(0, 4);
+        setProducts(visible);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   const handleProductHover = (e: React.MouseEvent<HTMLDivElement>) => {
     animate(e.currentTarget, {
@@ -30,36 +57,21 @@ const Shop = () => {
     });
   };
 
-  const products = [
-    {
-      id: 1,
-      name: "Grace Set",
-      description: "Elegant two-piece perfect for worship and beyond",
-      price: "$158",
-      image: product1,
-    },
-    {
-      id: 2,
-      name: "Beloved Ensemble",
-      description: "Timeless sophistication for every occasion",
-      price: "$142",
-      image: product2,
-    },
-    {
-      id: 3,
-      name: "Faith & Fashion Set",
-      description: "Modest luxury that speaks to your heart",
-      price: "$175",
-      image: product1,
-    },
-    {
-      id: 4,
-      name: "Pure Elegance",
-      description: "Refined pieces for the modern faithful woman",
-      price: "$165",
-      image: product2,
-    },
-  ];
+  const showViewAllButton = config?.shop?.showViewAllButton ?? true;
+
+  if (loading) {
+    return (
+      <section className="py-20 px-6 bg-muted">
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
+  }
+
+  if (products.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-20 px-6 bg-muted">
@@ -77,34 +89,47 @@ const Shop = () => {
         <div ref={productsRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product) => (
             <div 
-              key={product.id} 
-              className="product-item product-card opacity-0"
+              key={product.productId} 
+              className="product-item product-card opacity-0 cursor-pointer"
               style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))' }}
               onMouseEnter={handleProductHover}
               onMouseLeave={handleProductLeave}
+              onClick={() => navigate(`/product/${product.productId}`)}
             >
-              <div className="aspect-[4/5] overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                />
+              <div className="aspect-[4/5] overflow-hidden bg-muted">
+                {product.imageUrls?.[0] ? (
+                  <img
+                    src={product.imageUrls[0]}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    No image
+                  </div>
+                )}
               </div>
               <div className="p-6">
                 <h3 className="font-heading text-xl mb-2 text-foreground">
                   {product.name}
                 </h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  {product.description}
-                </p>
+                {product.description && (
+                  <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+                    {product.description}
+                  </p>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-lg text-primary">
-                    {product.price}
+                    ${product.price.toFixed(2)}
                   </span>
                   <Button 
                     variant="outline" 
                     size="sm"
                     className="btn-outline-luxury text-sm px-4 py-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/product/${product.productId}`);
+                    }}
                   >
                     View Details
                   </Button>
@@ -114,11 +139,16 @@ const Shop = () => {
           ))}
         </div>
         
-        <div className="text-center mt-12">
-          <Button className="btn-luxury">
-            View All Products
-          </Button>
-        </div>
+        {showViewAllButton && (
+          <div className="text-center mt-12">
+            <Button 
+              className="btn-luxury"
+              onClick={() => navigate("/products")}
+            >
+              View All Products
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );

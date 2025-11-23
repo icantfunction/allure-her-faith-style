@@ -3,7 +3,7 @@ import { PublicAPI } from "@/lib/api";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Loader2 } from "lucide-react";
-import { animate, stagger } from "animejs";
+import { animate } from "animejs";
 import { useProductGridAnimations } from "@/hooks/useProductGridAnimations";
 import Header from "@/components/Header";
 

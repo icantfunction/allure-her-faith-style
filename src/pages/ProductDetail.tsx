@@ -6,7 +6,6 @@ import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import { useCartAnimations } from "@/hooks/useCartAnimations";
 import { ChevronRight, Minus, Plus, ShoppingCart, Loader2, Check } from "lucide-react";
-import { animate } from "animejs";
 import Header from "@/components/Header";
 
 type Product = {

@@ -7,14 +7,6 @@ export const fadeInUp = {
   easing: 'easeOutCubic',
 };
 
-export const staggeredFadeIn = {
-  opacity: [0, 1],
-  translateY: [20, 0],
-  duration: 600,
-  delay: stagger(100),
-  easing: 'easeOutQuart',
-};
-
 export const scaleIn = {
   scale: [0.9, 1],
   opacity: [0, 1],

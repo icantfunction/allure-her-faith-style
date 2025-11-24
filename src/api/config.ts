@@ -49,8 +49,21 @@ export interface SiteConfigResponse {
 // ---------- PUBLIC: GET /public/theme ----------
 
 export async function getPublicConfig(): Promise<SiteConfigResponse> {
+  // Skip API call if no API base is configured
+  if (!API_BASE) {
+    throw new Error("API_BASE not configured");
+  }
+
   const res = await fetch(
-    `${API_BASE}/public/theme?siteId=${encodeURIComponent(SITE_ID)}`
+    `${API_BASE}/public/theme?siteId=${encodeURIComponent(SITE_ID)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "omit",
+      mode: "cors",
+    }
   );
 
   if (!res.ok) {
@@ -77,6 +90,11 @@ interface AdminUpdateConfigInput {
 export async function adminUpdateConfig(
   input: AdminUpdateConfigInput
 ): Promise<void> {
+  // Skip API call if no API base is configured
+  if (!API_BASE) {
+    throw new Error("API_BASE not configured");
+  }
+
   const token = await getAuthToken();
   if (!token) throw new Error("Not authenticated");
 
@@ -95,6 +113,8 @@ export async function adminUpdateConfig(
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
+    credentials: "omit",
+    mode: "cors",
     body: JSON.stringify(body),
   });
 

@@ -51,6 +51,11 @@ async function request<T = any>(
   options: RequestInit = {},
   auth: "public" | "admin" = "public"
 ): Promise<T | null> {
+  // Skip API call if no API base is configured
+  if (!API_BASE) {
+    throw new Error("API_BASE not configured");
+  }
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string> | undefined),
@@ -67,6 +72,8 @@ async function request<T = any>(
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
+    credentials: "omit",
+    mode: "cors",
   });
 
   if (res.status === 204) {
@@ -147,17 +154,27 @@ export async function listPublicProducts() {
 
 // GET /public/theme?siteId=...
 export async function getPublicTheme() {
+  // Skip API call if no API base is configured
+  if (!API_BASE) {
+    return null;
+  }
   return request(`/public/theme?siteId=${encodeURIComponent(SITE_ID)}`);
 }
 
 // POST /analytics/visit   (204)
 export async function recordVisit() {
-  // Temporarily disable analytics if API base is not configured
+  // Skip analytics if API base is not configured
   if (!API_BASE) return;
-  await request("/analytics/visit", {
-    method: "POST",
-    body: JSON.stringify({ siteId: SITE_ID }),
-  });
+  
+  try {
+    await request("/analytics/visit", {
+      method: "POST",
+      body: JSON.stringify({ siteId: SITE_ID }),
+    });
+  } catch (error) {
+    // Silently fail analytics - don't throw or log errors
+    // Analytics failures should not impact user experience
+  }
 }
 
 // ===== ADMIN ENDPOINTS (JWT required) =====

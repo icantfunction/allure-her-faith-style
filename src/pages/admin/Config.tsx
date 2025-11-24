@@ -79,12 +79,17 @@ export default function Config() {
           setShowShopSection(config.shop.showShopSection ?? true);
         }
       } catch (error) {
-        console.error("Failed to load config:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load current configuration",
-          variant: "destructive",
-        });
+        // Silently fail if API is unavailable - use default values
+        // Only show toast if it's an authentication error
+        const errorMessage = (error as Error).message;
+        if (errorMessage.includes("authenticated") || errorMessage.includes("token")) {
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to access configuration",
+            variant: "destructive",
+          });
+        }
+        // Otherwise use default values silently
       } finally {
         setLoading(false);
       }

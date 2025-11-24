@@ -43,7 +43,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
       const data = await getPublicConfig();
       setConfig(data);
     } catch (err) {
-      console.error("Failed to load site config:", err);
+      // Silently fail and use default config when API is unavailable
       setError(err as Error);
       // Set default config on error
       setConfig({

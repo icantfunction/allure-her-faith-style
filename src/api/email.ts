@@ -52,6 +52,8 @@ export async function adminListSubscribers() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials: "omit",
+      mode: "cors",
     }
   );
   
@@ -87,6 +89,8 @@ export async function adminListAllSubscribers(): Promise<Subscriber[]> {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials: "omit",
+      mode: "cors",
     });
 
     if (res.status === 403) {
@@ -128,6 +132,8 @@ export async function adminListCampaigns() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      credentials: "omit",
+      mode: "cors",
     }
   );
   
@@ -166,6 +172,8 @@ export async function adminCreateCampaign(input: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
+    credentials: "omit",
+    mode: "cors",
     body: JSON.stringify(body),
   });
 

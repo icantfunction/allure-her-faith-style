@@ -168,25 +168,25 @@ STRIPE_CANCEL_URL=https://yoursite.com/cancel
 ## 📦 New Dependencies
 
 ### Production Dependencies
-- `@stripe/stripe-js` & `@stripe/react-stripe-js` - Payment processing
-- `@aws-sdk/client-cognito-identity-provider` - AWS Cognito authentication
-- `amazon-cognito-identity-js` - Cognito identity management
-- `@supabase/supabase-js` - Supabase client
-- `@tanstack/react-query` - Server state management
-- `react-router-dom` - Client-side routing
-- `animejs` & `framer-motion` - Animations
-- `recharts` - Data visualization
-- `jspdf` & `jspdf-autotable` - PDF generation for packing slips
-- `papaparse` - CSV parsing
-- `date-fns` - Date formatting
-- `zod` & `react-hook-form` - Form validation
-- Complete Radix UI component library
-- `lucide-react` - Icon library
-- `sonner` - Toast notifications
+- `@stripe/stripe-js@^3.1.0` & `@stripe/react-stripe-js@^2.8.0` - Payment processing
+- `@aws-sdk/client-cognito-identity-provider@^3.929.0` - AWS Cognito authentication
+- `amazon-cognito-identity-js@^6.3.15` - Cognito identity management
+- `@supabase/supabase-js@^2.74.0` - Supabase client
+- `@tanstack/react-query@^5.83.0` - Server state management
+- `react-router-dom@^6.30.1` - Client-side routing
+- `animejs@^4.1.3` & `framer-motion@^12.23.12` - Animations
+- `recharts@^2.15.4` - Data visualization
+- `jspdf@^2.5.2` & `jspdf-autotable@^3.8.4` - PDF generation for packing slips
+- `papaparse@^5.5.3` - CSV parsing
+- `date-fns@^3.6.0` - Date formatting
+- `zod@^3.25.76` & `react-hook-form@^7.61.1` - Form validation
+- Complete Radix UI component library (@radix-ui/react-*)
+- `lucide-react@^0.462.0` - Icon library
+- `sonner@^1.7.4` - Toast notifications
 
 ### Development Dependencies
-- `@tailwindcss/typography` - Enhanced typography styles
-- `lovable-tagger` - Code tagging tool
+- `@tailwindcss/typography@^0.5.16` - Enhanced typography styles
+- `lovable-tagger@^1.1.9` - Code tagging tool
 
 ## 🗂️ File Structure Changes
 
@@ -297,7 +297,7 @@ supabase/
 
 ## 🔄 Migration Path
 
-This is a complete new implementation, so no migration is needed from previous code. However, ensure:
+This is a completely new implementation, so no migration is needed from previous code. However, ensure:
 
 1. Database tables are created via Supabase migrations
 2. AWS Cognito user pool is configured

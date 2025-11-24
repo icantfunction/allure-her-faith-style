@@ -7,6 +7,7 @@ import { PublicAPI } from "@/lib/api";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { placeholderProducts } from "@/lib/placeholderProducts";
 
 type Product = {
   productId: string;
@@ -28,59 +29,23 @@ const Shop = () => {
     targets: '.product-item',
   });
 
-  // Placeholder products to showcase animations
-  const placeholderProducts: Product[] = [
-    {
-      productId: 'placeholder-1',
-      name: 'Grace Elegance Set',
-      price: 129.99,
-      description: 'A timeless two-piece ensemble featuring a flowing midi skirt and coordinating blouse, perfect for Sunday service or special occasions.',
-      imageUrls: ['https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&h=1000&fit=crop'],
-      visible: true,
-    },
-    {
-      productId: 'placeholder-2',
-      name: 'Faith & Fashion Dress',
-      price: 98.50,
-      description: 'Sophisticated A-line dress with elegant detailing, designed to make you feel confident and beautiful in worship.',
-      imageUrls: ['https://images.unsplash.com/photo-1612336307429-8a898d10e223?w=800&h=1000&fit=crop'],
-      visible: true,
-    },
-    {
-      productId: 'placeholder-3',
-      name: 'Modesty Chic Ensemble',
-      price: 145.00,
-      description: 'Luxurious three-piece set combining modesty with contemporary style, featuring premium fabrics and impeccable tailoring.',
-      imageUrls: ['https://images.unsplash.com/photo-1617019114583-affb34d1b3cd?w=800&h=1000&fit=crop'],
-      visible: true,
-    },
-    {
-      productId: 'placeholder-4',
-      name: 'Divine Worship Attire',
-      price: 112.75,
-      description: 'Elegant coordinated outfit that transitions seamlessly from worship to brunch, embodying grace and sophistication.',
-      imageUrls: ['https://images.unsplash.com/photo-1594633313593-bab3825d0caf?w=800&h=1000&fit=crop'],
-      visible: true,
-    },
-  ];
-
   useEffect(() => {
     PublicAPI.listProducts()
       .then((data) => {
         // Filter to only visible products and take first 4
         const visible = data.filter((p: Product) => p.visible !== false).slice(0, 4);
         
-        // If no products from API, use placeholders
+        // If no products from API, use placeholders (first 4)
         if (visible.length === 0) {
-          setProducts(placeholderProducts);
+          setProducts(placeholderProducts.slice(0, 4));
         } else {
           setProducts(visible);
         }
       })
       .catch((error) => {
         console.error(error);
-        // On API error, use placeholder products
-        setProducts(placeholderProducts);
+        // On API error, use placeholder products (first 4)
+        setProducts(placeholderProducts.slice(0, 4));
       })
       .finally(() => setLoading(false));
   }, []);

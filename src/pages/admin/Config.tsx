@@ -11,6 +11,7 @@ import { motion } from "framer-motion";
 import { Palette, Save, CheckCircle2, Bell, MessageSquare } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
 
 export default function Config() {
   // Theme colors
@@ -41,6 +42,7 @@ export default function Config() {
   const [saved, setSaved] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const { toast } = useToast();
+  const { refreshConfig } = useSiteConfig();
 
   // Load current config on mount
   React.useEffect(() => {
@@ -117,6 +119,9 @@ export default function Config() {
           showShopSection,
         },
       });
+      
+      // Refresh the config from the server to ensure consistency
+      await refreshConfig();
       
       setSaved(true);
       toast({

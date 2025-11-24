@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
-import { staggeredFadeIn } from "@/utils/animations";
+import { productGridReveal } from "@/utils/animations";
 import { useEffect, useState } from "react";
 import { animate } from "animejs";
 import { PublicAPI } from "@/lib/api";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+import { placeholderProducts } from "@/lib/placeholderProducts";
 
 type Product = {
   productId: string;
@@ -24,7 +25,7 @@ const Shop = () => {
   const navigate = useNavigate();
   
   const productsRef = useAnimeOnScroll({
-    ...staggeredFadeIn,
+    ...productGridReveal,
     targets: '.product-item',
   });
 
@@ -33,9 +34,19 @@ const Shop = () => {
       .then((data) => {
         // Filter to only visible products and take first 4
         const visible = data.filter((p: Product) => p.visible !== false).slice(0, 4);
-        setProducts(visible);
+        
+        // If no products from API, use placeholders (first 4)
+        if (visible.length === 0) {
+          setProducts(placeholderProducts.slice(0, 4));
+        } else {
+          setProducts(visible);
+        }
       })
-      .catch(console.error)
+      .catch((error) => {
+        console.error(error);
+        // On API error, use placeholder products (first 4)
+        setProducts(placeholderProducts.slice(0, 4));
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -69,10 +80,6 @@ const Shop = () => {
     );
   }
 
-  if (products.length === 0) {
-    return null;
-  }
-
   return (
     <section className="py-20 px-6 bg-muted">
       <div className="max-w-7xl mx-auto">
@@ -86,7 +93,14 @@ const Shop = () => {
           </p>
         </div>
         
-        <div ref={productsRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-lg text-muted-foreground">
+              New products coming soon!
+            </p>
+          </div>
+        ) : (
+          <div ref={productsRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product) => (
             <div 
               key={product.productId} 
@@ -138,8 +152,9 @@ const Shop = () => {
             </div>
           ))}
         </div>
+        )}
         
-        {showViewAllButton && (
+        {products.length > 0 && showViewAllButton && (
           <div className="text-center mt-12">
             <Button 
               className="btn-luxury"

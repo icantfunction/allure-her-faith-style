@@ -1,12 +1,12 @@
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
-import { fadeInUp, staggeredFadeIn } from "@/utils/animations";
+import { fadeInUp, featuredCategoriesReveal } from "@/utils/animations";
 
 const About = () => {
-  const sectionRef = useAnimeOnScroll(fadeInUp);
+  const sectionRef = useAnimeOnScroll(fadeInUp, { threshold: 0.2 });
   const cardsRef = useAnimeOnScroll({
-    ...staggeredFadeIn,
+    ...featuredCategoriesReveal,
     targets: '.about-card',
-  });
+  }, { threshold: 0.2 });
 
   return (
     <section ref={sectionRef} className="py-20 px-6 opacity-0">

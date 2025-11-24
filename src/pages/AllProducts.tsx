@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { PublicAPI } from "@/lib/api";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { animate } from "animejs";
+import { useProductGridAnimations } from "@/hooks/useProductGridAnimations";
+import { placeholderProducts } from "@/lib/placeholderProducts";
 import Header from "@/components/Header";
 
 type Product = {
@@ -18,19 +19,48 @@ type Product = {
 
 export default function AllProducts() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [animatingFilter, setAnimatingFilter] = useState(false);
   const navigate = useNavigate();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const { animateProductsOut, animateProductsIn, animateGridReveal } = useProductGridAnimations();
+  const hasAnimatedInitial = useRef(false);
 
   useEffect(() => {
     PublicAPI.listProducts()
       .then((data) => {
         // Filter to only visible products
         const visible = data.filter((p: Product) => p.visible !== false);
-        setProducts(visible);
+        
+        // If no products from API, use placeholders
+        if (visible.length === 0) {
+          setProducts(placeholderProducts);
+          setFilteredProducts(placeholderProducts);
+        } else {
+          setProducts(visible);
+          setFilteredProducts(visible);
+        }
       })
-      .catch(console.error)
+      .catch((error) => {
+        console.error(error);
+        // On API error, use placeholder products
+        setProducts(placeholderProducts);
+        setFilteredProducts(placeholderProducts);
+      })
       .finally(() => setLoading(false));
   }, []);
+
+  // Initial grid reveal animation
+  useEffect(() => {
+    if (!loading && filteredProducts.length > 0 && gridRef.current && !hasAnimatedInitial.current) {
+      const items = gridRef.current.querySelectorAll('.product-item');
+      if (items.length > 0) {
+        animateGridReveal(Array.from(items) as HTMLElement[]);
+        hasAnimatedInitial.current = true;
+      }
+    }
+  }, [loading, filteredProducts, animateGridReveal]);
 
   const handleProductHover = (e: React.MouseEvent<HTMLDivElement>) => {
     animate(e.currentTarget, {
@@ -75,34 +105,26 @@ export default function AllProducts() {
 
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12">
           <h1 className="text-4xl font-heading font-semibold text-foreground mb-4">
             Our Collection
           </h1>
           <p className="text-lg text-muted-foreground">
-            {products.length} {products.length === 1 ? 'product' : 'products'} available
+            {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} available
           </p>
-        </motion.div>
+        </div>
 
-        {products.length === 0 ? (
+        {filteredProducts.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-lg text-muted-foreground mb-6">No products available yet</p>
             <Button onClick={() => navigate("/")}>Return Home</Button>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {products.map((product, idx) => (
-              <motion.div
+          <div ref={gridRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {filteredProducts.map((product) => (
+              <div
                 key={product.productId}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: idx * 0.05 }}
-                className="product-card cursor-pointer"
+                className="product-item product-card cursor-pointer opacity-0"
                 style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))' }}
                 onMouseEnter={handleProductHover}
                 onMouseLeave={handleProductLeave}
@@ -147,7 +169,7 @@ export default function AllProducts() {
                     </Button>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Star } from "lucide-react";
 import testimonialImage from "@/assets/testimonial-1.jpg";
 import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
-import { staggeredFadeIn } from "@/utils/animations";
+import { testimonialReveal } from "@/utils/animations";
 
 const Testimonials = () => {
   const sectionRef = useAnimeOnScroll({
@@ -10,12 +10,12 @@ const Testimonials = () => {
     translateY: [30, 0],
     duration: 800,
     easing: 'easeOutQuart',
-  });
+  }, { threshold: 0.2 });
   
   const cardsRef = useAnimeOnScroll({
-    ...staggeredFadeIn,
+    ...testimonialReveal,
     targets: '.testimonial-card',
-  });
+  }, { threshold: 0.2 });
 
   const testimonials = [
     {

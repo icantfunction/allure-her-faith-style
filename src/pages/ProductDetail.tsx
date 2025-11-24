@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { PublicAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronRight, Minus, Plus, ShoppingCart, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { useCartAnimations } from "@/hooks/useCartAnimations";
+import { ChevronRight, Minus, Plus, ShoppingCart, Loader2, Check } from "lucide-react";
 import Header from "@/components/Header";
 
 type Product = {
@@ -21,9 +21,13 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { animateButtonTap, animateSuccess } = useCartAnimations();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const successIconRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!productId) return;
@@ -42,8 +46,12 @@ export default function ProductDetail() {
   }, [productId, toast]);
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || !addButtonRef.current) return;
     
+    // Animate button tap
+    animateButtonTap(addButtonRef.current);
+    
+    // Add to cart
     addToCart(
       {
         productId: product.productId,
@@ -53,6 +61,21 @@ export default function ProductDetail() {
       },
       quantity
     );
+    
+    // Show success indicator
+    setShowSuccess(true);
+    
+    // Animate success icon
+    setTimeout(() => {
+      if (successIconRef.current) {
+        animateSuccess(successIconRef.current);
+      }
+    }, 50);
+    
+    // Hide success indicator after animation
+    setTimeout(() => {
+      setShowSuccess(false);
+    }, 1500);
     
     toast({
       title: "Added to cart",
@@ -98,12 +121,7 @@ export default function ProductDetail() {
       <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="grid md:grid-cols-2 gap-12">
           {/* Product Image */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
-            className="aspect-square rounded-lg overflow-hidden bg-muted"
-          >
+          <div className="aspect-square rounded-lg overflow-hidden bg-muted">
             {product.imageUrls?.[0] ? (
               <img
                 src={product.imageUrls[0]}
@@ -115,15 +133,10 @@ export default function ProductDetail() {
                 No image
               </div>
             )}
-          </motion.div>
+          </div>
 
           {/* Product Info */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-6"
-          >
+          <div className="space-y-6">
             <div>
               <h1 className="text-4xl font-heading font-semibold text-foreground mb-4">
                 {product.name}
@@ -162,14 +175,28 @@ export default function ProductDetail() {
             </div>
 
             {/* Add to Cart */}
-            <Button
-              onClick={handleAddToCart}
-              className="w-full btn-luxury"
-              size="lg"
-            >
-              <ShoppingCart className="mr-2 h-5 w-5" />
-              Add to Cart
-            </Button>
+            <div className="relative">
+              <Button
+                ref={addButtonRef}
+                onClick={handleAddToCart}
+                className="w-full btn-luxury"
+                size="lg"
+              >
+                <ShoppingCart className="mr-2 h-5 w-5" />
+                Add to Cart
+              </Button>
+              
+              {/* Success indicator */}
+              {showSuccess && (
+                <div 
+                  ref={successIconRef}
+                  className="absolute inset-0 flex items-center justify-center bg-primary rounded-md opacity-0"
+                  style={{ pointerEvents: 'none' }}
+                >
+                  <Check className="h-6 w-6 text-primary-foreground" />
+                </div>
+              )}
+            </div>
 
             {/* Continue Shopping */}
             <Button
@@ -179,7 +206,7 @@ export default function ProductDetail() {
             >
               Continue Shopping
             </Button>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

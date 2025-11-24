@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
+import { heroSectionReveal } from "@/utils/animations";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +29,12 @@ const Hero = () => {
   // Parallax scroll effect
   const { scrollYProgress } = useScroll();
   const y = useTransform(scrollYProgress, [0, 1], [0, 60]); // subtle parallax
+
+  // Hero content staggered reveal
+  const heroContentRef = useAnimeOnScroll({
+    ...heroSectionReveal,
+    targets: '.hero-content-item',
+  }, { threshold: 0.1, triggerOnce: true });
 
   useEffect(() => {
     // Check for reduced motion preference
@@ -134,8 +142,8 @@ const Hero = () => {
         <div className="relative z-10 flex items-center px-6" style={{ minHeight: '88vh' }}>
           <div className="w-full max-w-6xl mx-auto">
           {/* Content - Left aligned on desktop, center on mobile */}
-          <div className="text-center text-white max-w-4xl mx-auto">
-            <h1 className="text-hero mb-8">
+          <div ref={heroContentRef} className="text-center text-white max-w-4xl mx-auto">
+            <h1 className="hero-content-item text-hero mb-8 opacity-0">
               <img 
                 src="/images/logo.png" 
                 alt="Allure Her" 
@@ -146,21 +154,11 @@ const Hero = () => {
               />
             </h1>
             
-            <motion.p
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: "easeOut", delay: 0.45 }}
-              className="text-subhero mb-10 mx-auto -mt-[40px]"
-            >
+            <p className="hero-content-item text-subhero mb-10 mx-auto -mt-[40px] opacity-0">
               Where faith meets fashion in timeless elegance
-            </motion.p>
+            </p>
             
-            <motion.div
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, ease: "easeOut", delay: 0.7 }}
-              className="-mt-[30px]"
-            >
+            <div className="hero-content-item -mt-[30px] opacity-0">
               {!showEmailForm ? (
                 <Button 
                   onClick={() => setShowEmailForm(true)}
@@ -188,7 +186,7 @@ const Hero = () => {
                   </Button>
                 </form>
               )}
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>

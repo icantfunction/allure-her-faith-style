@@ -3,10 +3,23 @@ import { useCart } from "@/contexts/CartContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useEffect, useRef } from "react";
+import { useCartAnimations } from "@/hooks/useCartAnimations";
 
 export default function MiniCart() {
   const { totalItems } = useCart();
   const navigate = useNavigate();
+  const cartIconRef = useRef<HTMLDivElement>(null);
+  const prevItemCount = useRef(totalItems);
+  const { animateCartIcon } = useCartAnimations();
+
+  // Animate when items are added
+  useEffect(() => {
+    if (totalItems > prevItemCount.current && cartIconRef.current) {
+      animateCartIcon(cartIconRef.current);
+    }
+    prevItemCount.current = totalItems;
+  }, [totalItems, animateCartIcon]);
 
   return (
     <Button
@@ -15,7 +28,9 @@ export default function MiniCart() {
       className="relative"
       onClick={() => navigate("/checkout")}
     >
-      <ShoppingCart className="h-5 w-5" />
+      <div ref={cartIconRef}>
+        <ShoppingCart className="h-5 w-5" />
+      </div>
       {totalItems > 0 && (
         <Badge
           variant="default"

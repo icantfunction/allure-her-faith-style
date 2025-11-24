@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createCheckoutSession } from "@/api/checkout";
 import { SITE_ID } from "@/utils/siteId";
+import { useStripe, useElements, AddressElement, PaymentElement } from "@stripe/react-stripe-js";
 
 export default function Checkout() {
   const { items, totalPrice, removeFromCart, updateQuantity } = useCart();

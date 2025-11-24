@@ -1,6 +1,7 @@
 import React from "react";
 import { AdminAPI } from "../../lib/api";
-import { getPublicConfig, adminUpdateConfig } from "@/api/config";
+import { adminUpdateConfig } from "@/api/config";
+import { getAdminConfig } from "@/api/allureherApi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +49,7 @@ export default function Config() {
   React.useEffect(() => {
     async function loadConfig() {
       try {
-        const config = await getPublicConfig();
+        const config = await getAdminConfig();
         
         if (config.theme) {
           if (config.theme.primary) setPrimary(config.theme.primary);

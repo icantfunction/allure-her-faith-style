@@ -58,9 +58,7 @@ export async function getPublicConfig(): Promise<SiteConfigResponse> {
     throw new Error(`getPublicConfig failed (${res.status}): ${text}`);
   }
 
-  const config = await res.json();
-  console.log('[getPublicConfig] Loaded config:', JSON.stringify(config, null, 2));
-  return config;
+  return res.json();
 }
 
 // ---------- ADMIN: PUT /admin/config ----------
@@ -91,8 +89,6 @@ export async function adminUpdateConfig(
   if (input.banner) body.banner = input.banner;
   if (input.shop) body.shop = input.shop;
 
-  console.log('[adminUpdateConfig] Sending config update:', JSON.stringify(body, null, 2));
-
   const res = await fetch(`${API_BASE}/admin/config`, {
     method: "PUT",
     headers: {
@@ -102,18 +98,14 @@ export async function adminUpdateConfig(
     body: JSON.stringify(body),
   });
 
-  console.log('[adminUpdateConfig] Response status:', res.status);
-
   if (res.status === 401 || res.status === 403) {
     throw new Error("Unauthorized");
   }
 
   if (!res.ok && res.status !== 204) {
     const text = await res.text().catch(() => "");
-    console.error('[adminUpdateConfig] Error response:', text);
     throw new Error(`adminUpdateConfig failed (${res.status}): ${text}`);
   }
 
-  console.log('[adminUpdateConfig] Config update successful');
   // 204 = success, no content
 }

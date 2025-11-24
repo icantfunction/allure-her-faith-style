@@ -75,13 +75,6 @@ const Shop = () => {
   const showViewAllButton = config?.shop?.showViewAllButton ?? true;
   const isShopHidden = config?.shop?.showShopSection === false;
 
-  console.log('[Shop] Config:', { 
-    shopConfig: config?.shop, 
-    showViewAllButton, 
-    isShopHidden,
-    configLoading 
-  });
-
   const filterProducts = useCallback((list: Product[], filterId: FilterId) => {
     const visible = list.filter((p) => p.visible !== false);
     if (filterId === "all") return visible;

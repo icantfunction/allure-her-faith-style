@@ -81,13 +81,15 @@ export default function Config() {
       } catch (error) {
         // Silently fail if API is unavailable - use default values
         // Only show toast if it's an authentication error
-        const errorMessage = (error as Error).message;
-        if (errorMessage.includes("authenticated") || errorMessage.includes("token")) {
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to access configuration",
-            variant: "destructive",
-          });
+        if (error instanceof Error) {
+          const errorMessage = error.message;
+          if (errorMessage.includes("authenticated") || errorMessage.includes("token")) {
+            toast({
+              title: "Authentication Required",
+              description: "Please log in to access configuration",
+              variant: "destructive",
+            });
+          }
         }
         // Otherwise use default values silently
       } finally {

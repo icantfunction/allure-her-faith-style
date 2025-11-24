@@ -158,7 +158,12 @@ export async function getPublicTheme() {
   if (!API_BASE) {
     return null;
   }
-  return request(`/public/theme?siteId=${encodeURIComponent(SITE_ID)}`);
+  try {
+    return request(`/public/theme?siteId=${encodeURIComponent(SITE_ID)}`);
+  } catch (error) {
+    // Silently fail - caller will handle null response
+    return null;
+  }
 }
 
 // POST /analytics/visit   (204)
@@ -172,8 +177,11 @@ export async function recordVisit() {
       body: JSON.stringify({ siteId: SITE_ID }),
     });
   } catch (error) {
-    // Silently fail analytics - don't throw or log errors
+    // Silently fail analytics - don't throw or log errors in production
     // Analytics failures should not impact user experience
+    if (import.meta.env.DEV) {
+      console.debug("Analytics call failed (expected if backend is unavailable):", error);
+    }
   }
 }
 

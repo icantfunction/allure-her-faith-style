@@ -4,10 +4,11 @@ import {
   AuthenticationDetails,
   CognitoUserSession,
 } from "amazon-cognito-identity-js";
+import { COGNITO_CONFIG } from "@/config/cognito.config";
 
-const REGION = import.meta.env.VITE_AWS_REGION as string;
-const USER_POOL_ID = import.meta.env.VITE_USER_POOL_ID as string;
-const APP_CLIENT_ID = import.meta.env.VITE_APP_CLIENT_ID as string;
+const REGION = import.meta.env.VITE_AWS_REGION || COGNITO_CONFIG.REGION;
+const USER_POOL_ID = import.meta.env.VITE_USER_POOL_ID || COGNITO_CONFIG.USER_POOL_ID;
+const APP_CLIENT_ID = import.meta.env.VITE_APP_CLIENT_ID || COGNITO_CONFIG.APP_CLIENT_ID;
 
 if (!REGION || !USER_POOL_ID || !APP_CLIENT_ID) {
   throw new Error("Missing env: VITE_AWS_REGION, VITE_USER_POOL_ID, VITE_APP_CLIENT_ID");

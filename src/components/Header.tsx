@@ -17,12 +17,6 @@ export default function Header() {
           >
             Home
           </Link>
-          <Link
-            to="/products"
-            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-          >
-            Shop
-          </Link>
           <MiniCart />
         </nav>
       </div>

@@ -35,9 +35,7 @@ export type Campaign = {
 
 // ----- Fixed per your backend -----
 const SITE_ID = import.meta.env.VITE_SITE_ID ?? "my-site";
-const API_BASE =
-  import.meta.env.VITE_API_BASE ??
-  "https://1f7dvduzvg.execute-api.us-east-1.amazonaws.com/prod"; // fallback
+const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 // LocalStorage key for admin ID token (Cognito JWT)
 const ADMIN_TOKEN_KEY = "allureher_admin_token";
@@ -154,6 +152,8 @@ export async function getPublicTheme() {
 
 // POST /analytics/visit   (204)
 export async function recordVisit() {
+  // Temporarily disable analytics if API base is not configured
+  if (!API_BASE) return;
   await request("/analytics/visit", {
     method: "POST",
     body: JSON.stringify({ siteId: SITE_ID }),

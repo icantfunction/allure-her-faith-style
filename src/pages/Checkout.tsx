@@ -8,15 +8,82 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ShoppingBag, Trash2, Minus, Plus } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { createCheckoutSession } from "@/api/checkout";
+import { SITE_ID } from "@/utils/siteId";
 
 export default function Checkout() {
   const { items, totalPrice, removeFromCart, updateQuantity } = useCart();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const subtotal = totalPrice;
   const tax = subtotal * 0.08; // 8% tax
   const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
   const total = subtotal + tax + shipping;
+
+  const handleCheckout = async () => {
+    if (!import.meta.env.VITE_CHECKOUT_ENDPOINT) {
+      toast({
+        title: "Checkout not configured",
+        description: "Add VITE_CHECKOUT_ENDPOINT to your env to enable payments.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
+      toast({
+        title: "Missing details",
+        description: "Please complete your shipping contact information.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const lineItems = items.map((item) => ({
+        quantity: item.quantity,
+        price_data: {
+          currency: "usd",
+          product_data: { name: item.name },
+          unit_amount: Math.round(Number(item.price ?? 0) * 100),
+        },
+      }));
+
+      const session = await createCheckoutSession({
+        lineItems,
+        mode: "payment",
+        siteId: SITE_ID,
+      });
+
+      if (session?.url) {
+        window.location.href = session.url;
+      } else {
+        throw new Error("No checkout URL returned");
+      }
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        title: "Checkout failed",
+        description: error.message || "We couldn't start checkout. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -89,7 +156,7 @@ export default function Checkout() {
                       )}
                       <div className="flex-1">
                         <h3 className="font-medium text-foreground">{item.name}</h3>
-                        <p className="text-sm text-primary font-medium">${item.price.toFixed(2)}</p>
+                        <p className="text-sm text-primary font-medium">${Number(item.price ?? 0).toFixed(2)}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <Button
                             variant="outline"
@@ -112,7 +179,7 @@ export default function Checkout() {
                       </div>
                       <div className="flex flex-col items-end justify-between">
                         <p className="font-semibold text-foreground">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ${(Number(item.price ?? 0) * item.quantity).toFixed(2)}
                         </p>
                         <Button
                           variant="ghost"
@@ -139,41 +206,43 @@ export default function Checkout() {
                 <CardHeader>
                   <CardTitle className="font-heading">Shipping Information</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <form className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" placeholder="John" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" placeholder="Doe" />
-                      </div>
+                <CardContent className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="john@example.com" />
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="address">Address</Label>
+                    <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="address">Address</Label>
-                      <Input id="address" placeholder="123 Main St" />
+                      <Label htmlFor="state">State</Label>
+                      <Input id="state" value={state} onChange={(e) => setState(e.target.value)} />
                     </div>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="city">City</Label>
-                        <Input id="city" placeholder="New York" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="state">State</Label>
-                        <Input id="state" placeholder="NY" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="zip">ZIP Code</Label>
-                        <Input id="zip" placeholder="10001" />
-                      </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="zip">ZIP Code</Label>
+                      <Input id="zip" value={zip} onChange={(e) => setZip(e.target.value)} />
                     </div>
-                  </form>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -219,9 +288,14 @@ export default function Checkout() {
                     <span className="text-foreground">Total</span>
                     <span className="text-primary">${total.toFixed(2)}</span>
                   </div>
-
-                  <Button className="w-full btn-luxury" size="lg">
-                    Place Order
+                  
+                  <Button
+                    className="w-full btn-luxury"
+                    size="lg"
+                    disabled={submitting}
+                    onClick={handleCheckout}
+                  >
+                    {submitting ? "Redirecting..." : "Proceed to Payment"}
                   </Button>
                   
                   <Button
@@ -240,3 +314,111 @@ export default function Checkout() {
     </div>
   );
 }
+
+type AddressAndPaymentProps = {
+  onShippingChange: (value: any) => void;
+  submitting: boolean;
+  setSubmitting: (v: boolean) => void;
+  successUrl: string;
+  cancelUrl: string;
+  shippingDetails: any;
+};
+
+const AddressAndPayment = ({
+  onShippingChange,
+  submitting,
+  setSubmitting,
+  successUrl,
+  cancelUrl,
+  shippingDetails,
+}: AddressAndPaymentProps) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const { toast } = useToast();
+
+  const handleSubmit = async () => {
+    if (!stripe || !elements) return;
+    if (!shippingDetails) {
+      toast({
+        title: "Missing address",
+        description: "Please complete your shipping address and phone.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { error } = await stripe.confirmPayment({
+        elements,
+        confirmParams: {
+          return_url: successUrl,
+          shipping: shippingDetails
+            ? {
+                name: `${shippingDetails.name || ""}`.trim(),
+                phone: shippingDetails.phone,
+                address: {
+                  line1: shippingDetails.address?.line1,
+                  line2: shippingDetails.address?.line2,
+                  city: shippingDetails.address?.city,
+                  state: shippingDetails.address?.state,
+                  postal_code: shippingDetails.address?.postal_code,
+                  country: shippingDetails.address?.country,
+                },
+              }
+            : undefined,
+        },
+        redirect: "if_required",
+      });
+
+      if (error) {
+        toast({
+          title: "Payment failed",
+          description: error.message || "We couldn't complete your payment.",
+          variant: "destructive",
+        });
+      } else {
+        // If no redirect required and succeeds inline
+        window.location.href = successUrl;
+      }
+    } catch (err: any) {
+      toast({
+        title: "Payment failed",
+        description: err?.message || "We couldn't complete your payment.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <AddressElement
+        options={{
+          mode: "shipping",
+          fields: {
+            phone: "always",
+          },
+          validation: {
+            phone: { required: "always" },
+          },
+          allowedCountries: ["US", "CA"],
+        }}
+        onChange={(event) => {
+          if (event.complete) {
+            onShippingChange(event.value);
+          }
+        }}
+      />
+      <PaymentElement />
+      <Button
+        className="w-full btn-luxury"
+        size="lg"
+        disabled={submitting || !stripe || !elements}
+        onClick={handleSubmit}
+      >
+        {submitting ? "Processing..." : "Pay now"}
+      </Button>
+    </div>
+  );
+};

@@ -142,7 +142,6 @@ const Hero = () => {
                 className="mx-auto h-24 md:h-36 w-auto mt-[80px]"
                 width="754"
                 height="332"
-                fetchPriority="high"
               />
             </h1>
             

@@ -74,8 +74,11 @@ export default function Config() {
         }
         
         if (config.shop) {
+          console.log('[Config.loadConfig] Loaded shop config:', config.shop);
           setShowViewAllButton(config.shop.showViewAllButton ?? true);
           setShowShopSection(config.shop.showShopSection ?? true);
+        } else {
+          console.log('[Config.loadConfig] No shop config found, using defaults');
         }
       } catch (error) {
         console.error("Failed to load config:", error);
@@ -96,6 +99,11 @@ export default function Config() {
     setSaving(true);
     setSaved(false);
     try {
+      console.log('[Config.save] Saving config with shop settings:', {
+        showViewAllButton,
+        showShopSection,
+      });
+      
       await adminUpdateConfig({
         theme: { primary, accent },
         popup: {
@@ -120,8 +128,12 @@ export default function Config() {
         },
       });
       
+      console.log('[Config.save] Config saved, refreshing...');
+      
       // Refresh the config from the server to ensure consistency
       await refreshConfig();
+      
+      console.log('[Config.save] Config refreshed successfully');
       
       setSaved(true);
       toast({
@@ -130,6 +142,7 @@ export default function Config() {
       });
       setTimeout(() => setSaved(false), 3000);
     } catch (e: any) {
+      console.error('[Config.save] Error saving config:', e);
       toast({
         title: "Error",
         description: e.message || "Failed to update configuration",

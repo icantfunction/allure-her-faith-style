@@ -1,9 +1,16 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, Palette, BarChart3, TrendingUp, Mail, Users } from "lucide-react";
+import { ShoppingBag, Palette, BarChart3, TrendingUp, Mail, Users, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const quickStats = [
+  {
+    title: "Orders & Shipping",
+    description: "Batch, print, ship",
+    icon: Package,
+    href: "/admin/orders",
+    color: "text-emerald-600",
+  },
   {
     title: "Products",
     description: "Manage your inventory",

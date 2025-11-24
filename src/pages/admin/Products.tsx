@@ -32,7 +32,7 @@ import { Badge } from "@/components/ui/badge";
 type Product = {
   productId: string;
   name: string;
-  price: number;
+  price?: number;
   description?: string;
   images?: string[];
   imageUrls?: string[];
@@ -67,7 +67,11 @@ export default function Products() {
   async function loadProducts() {
     try {
       const data = await PublicAPI.listProducts();
-      setList(data);
+      const normalized = (data || []).map((item: Product) => ({
+        ...item,
+        price: item.price ?? 0,
+      }));
+      setList(normalized);
     } catch (error) {
       console.error(error);
       toast({
@@ -190,13 +194,18 @@ export default function Products() {
   const openEditDialog = (product: Product) => {
     setEditingProduct(product);
     setEditName(product.name);
-    setEditPrice(product.price);
+    setEditPrice(product.price ?? 0);
     setEditDescription(product.description || "");
     setEditFile(null);
     setEditDialogOpen(true);
   };
 
   const visibleCount = list.filter(p => p.visible !== false).length;
+  const formatPrice = (price?: number) => {
+    const value = typeof price === "number" ? price : 0;
+    if (Number.isNaN(value)) return "—";
+    return `$${value.toFixed(2)}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -356,7 +365,7 @@ export default function Products() {
                             </p>
                           )}
                           <p className="text-lg font-semibold text-primary">
-                            ${p.price.toFixed(2)}
+                            {formatPrice(p.price)}
                           </p>
                         </div>
                         <div className="flex gap-2 flex-shrink-0">

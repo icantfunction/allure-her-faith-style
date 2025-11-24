@@ -61,4 +61,29 @@ export const AdminAPI = {
       method: "DELETE",
       body: JSON.stringify({ siteId: SITE_ID }),
     }),
+  listOrders: (params: Partial<{ status: string; method: string; hasLabel: boolean; q: string; nextToken: string; limit: number; from: string; to: string }>) => {
+    const search = new URLSearchParams();
+    search.set("siteId", SITE_ID);
+    if (params.status) search.set("status", params.status);
+    if (params.method) search.set("method", params.method);
+    if (params.hasLabel !== undefined) search.set("hasLabel", String(params.hasLabel));
+    if (params.q) search.set("q", params.q);
+    if (params.nextToken) search.set("nextToken", params.nextToken);
+    if (params.limit) search.set("limit", String(params.limit));
+    if (params.from) search.set("from", params.from);
+    if (params.to) search.set("to", params.to);
+    return apiFetch<{ items: any[]; nextToken?: string }>(`/admin/orders?${search.toString()}`);
+  },
+  getOrder: (orderId: string) =>
+    apiFetch<any>(`/admin/orders/${encodeURIComponent(orderId)}?siteId=${encodeURIComponent(SITE_ID)}`),
+  bulkPrintLabels: (payload: { orderIds: string[]; storeName: string; carrier?: string; format?: string }) =>
+    apiFetch<{ results: { orderId: string; trackingId?: string; url?: string }[] }>(`/admin/orders/bulk-print-labels`, {
+      method: "POST",
+      body: JSON.stringify({ siteId: SITE_ID, ...payload }),
+    }),
+  updateOrderStatus: (orderId: string, status: string) =>
+    apiFetch<void>(`/admin/orders/${encodeURIComponent(orderId)}/status`, {
+      method: "POST",
+      body: JSON.stringify({ status }),
+    }),
 };

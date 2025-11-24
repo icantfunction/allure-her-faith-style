@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -18,6 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const navItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Orders", url: "/admin/orders", icon: Package },
   { title: "Products", url: "/admin/products", icon: ShoppingBag },
   { title: "Email & Subscribers", url: "/admin/emails", icon: Mail },
   { title: "Ambassadors", url: "/admin/ambassadors", icon: Users },

@@ -39,7 +39,7 @@ const Shop = () => {
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
-  const { config } = useSiteConfig();
+  const { config, loading: configLoading } = useSiteConfig();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -204,7 +204,8 @@ const Shop = () => {
     });
   };
 
-  if (loading) {
+  // Wait for config to load before checking if shop should be hidden
+  if (configLoading) {
     return (
       <section className="py-20 px-6 bg-muted">
         <div className="max-w-7xl mx-auto flex items-center justify-center">
@@ -216,6 +217,17 @@ const Shop = () => {
 
   if (isShopHidden) {
     return null;
+  }
+
+  // Show loading while products are being fetched
+  if (loading) {
+    return (
+      <section className="py-20 px-6 bg-muted">
+        <div className="max-w-7xl mx-auto flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
   }
 
   // Show message when no products are available

@@ -125,7 +125,12 @@ const Shop = () => {
         setDisplayedProducts(curated);
         requestAnimationFrame(() => requestAnimationFrame(playEntrance));
       })
-      .catch(console.error)
+      .catch((error) => {
+        console.error("Failed to load products:", error);
+        // Set empty array to show "no products" message instead of hiding completely
+        setProducts([]);
+        setDisplayedProducts([]);
+      })
       .finally(() => setLoading(false));
   }, [filterProducts, playEntrance]);
 
@@ -209,8 +214,44 @@ const Shop = () => {
     );
   }
 
-  if (isShopHidden || displayedProducts.length === 0) {
+  if (isShopHidden) {
     return null;
+  }
+
+  // Show message when no products are available
+  if (displayedProducts.length === 0) {
+    return (
+      <section className="relative py-20 px-6 bg-gradient-to-b from-muted/70 via-background to-muted/80 overflow-hidden">
+        <div className="absolute inset-0 opacity-60 pointer-events-none">
+          <div className="absolute -top-24 -right-10 h-72 w-72 rounded-full bg-primary/10 blur-3xl" />
+          <div className="absolute bottom-0 -left-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
+        </div>
+        <div className="relative max-w-7xl mx-auto">
+          <div className="text-center max-w-2xl mx-auto space-y-6">
+            <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white shadow-soft">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">Coming Soon</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-heading font-semibold text-primary">
+              Shop the wardrobe
+            </h2>
+            <p className="text-lg text-foreground/80">
+              Our collection is being curated with care. Check back soon to discover pieces where faith meets fashion in timeless elegance.
+            </p>
+            <div className="pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => navigate("/")}
+                className="gap-2"
+              >
+                Stay Updated
+                <Sparkles className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (

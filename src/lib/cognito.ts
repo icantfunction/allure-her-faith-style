@@ -3,12 +3,13 @@ import {
   ForgotPasswordCommand,
   ConfirmForgotPasswordCommand,
 } from "@aws-sdk/client-cognito-identity-provider";
+import { COGNITO_CONFIG } from "@/config/cognito.config";
 
-const REGION = import.meta.env.VITE_COGNITO_REGION as string;
-const APP_CLIENT_ID = import.meta.env.VITE_COGNITO_CLIENT_ID as string;
+const REGION = import.meta.env.VITE_AWS_REGION || import.meta.env.VITE_COGNITO_REGION || COGNITO_CONFIG.REGION;
+const APP_CLIENT_ID = import.meta.env.VITE_APP_CLIENT_ID || import.meta.env.VITE_COGNITO_CLIENT_ID || COGNITO_CONFIG.APP_CLIENT_ID;
 
 if (!REGION || !APP_CLIENT_ID) {
-  console.error("Missing Cognito env vars. Check VITE_COGNITO_REGION and VITE_COGNITO_CLIENT_ID");
+  console.error("Missing Cognito env vars. Check VITE_AWS_REGION and VITE_APP_CLIENT_ID");
 }
 
 const cognito = new CognitoIdentityProviderClient({ region: REGION });

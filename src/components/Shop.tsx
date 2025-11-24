@@ -69,10 +69,6 @@ const Shop = () => {
     );
   }
 
-  if (products.length === 0) {
-    return null;
-  }
-
   return (
     <section className="py-20 px-6 bg-muted">
       <div className="max-w-7xl mx-auto">
@@ -86,7 +82,15 @@ const Shop = () => {
           </p>
         </div>
         
-        <div ref={productsRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        {products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-lg text-muted-foreground mb-6">
+              New products coming soon! Join our insider list to be the first to know.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div ref={productsRef} className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {products.map((product) => (
             <div 
               key={product.productId} 
@@ -148,6 +152,8 @@ const Shop = () => {
               View All Products
             </Button>
           </div>
+        )}
+        </>
         )}
       </div>
     </section>

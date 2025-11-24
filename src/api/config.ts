@@ -35,6 +35,7 @@ export interface BannerConfig {
 
 export interface ShopConfig {
   showViewAllButton?: boolean;
+  showShopSection?: boolean;
 }
 
 export interface SiteConfigResponse {

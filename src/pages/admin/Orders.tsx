@@ -83,12 +83,6 @@ const OrderRow = ({
       <Button variant="outline" size="sm" onClick={() => onPrint(order.orderId)}>
         <Printer className="h-4 w-4" />
       </Button>
-      <Button variant="outline" size="sm" onClick={() => onStatus(order.orderId, "PACKED")}>
-        <PackageCheck className="h-4 w-4" />
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => onStatus(order.orderId, "SHIPPED")}>
-        <Truck className="h-4 w-4" />
-      </Button>
     </div>
   </div>
 );
@@ -157,8 +151,11 @@ export default function Orders() {
       });
       toast({
         title: "Labels ready",
-        description: res.results.length ? "Open the generated PDFs from the row menu." : "No labels generated.",
+        description: res.pdfUrl ? "Open the generated PDF from the link below." : "Labels requested.",
       });
+      if (res.pdfUrl) {
+        window.open(res.pdfUrl, "_blank");
+      }
       setLabelDialog(false);
       load();
     } catch (err: any) {

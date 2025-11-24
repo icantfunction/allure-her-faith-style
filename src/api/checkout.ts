@@ -26,6 +26,7 @@ export type CheckoutSessionResponse = {
 export const createCheckoutSession = async (payload: {
   lineItems: any[];
   mode?: string;
+  siteId: string;
 }) => {
   const endpoint = import.meta.env.VITE_CHECKOUT_ENDPOINT;
   if (!endpoint) {
@@ -45,4 +46,3 @@ export const createCheckoutSession = async (payload: {
 
   return (await res.json()) as CheckoutSessionResponse;
 };
-

@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createCheckoutSession } from "@/api/checkout";
+import { SITE_ID } from "@/utils/siteId";
 
 export default function Checkout() {
   const { items, totalPrice, removeFromCart, updateQuantity } = useCart();
@@ -64,6 +65,7 @@ export default function Checkout() {
       const session = await createCheckoutSession({
         lineItems,
         mode: "payment",
+        siteId: SITE_ID,
       });
 
       if (session?.url) {

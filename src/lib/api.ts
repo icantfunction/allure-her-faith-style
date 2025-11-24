@@ -77,7 +77,7 @@ export const AdminAPI = {
   getOrder: (orderId: string) =>
     apiFetch<any>(`/admin/orders/${encodeURIComponent(orderId)}?siteId=${encodeURIComponent(SITE_ID)}`),
   bulkPrintLabels: (payload: { orderIds: string[]; storeName: string; carrier?: string; format?: string }) =>
-    apiFetch<{ results: { orderId: string; trackingId?: string; url?: string }[] }>(`/admin/orders/bulk-print-labels`, {
+    apiFetch<{ pdfUrl?: string; updated?: any[] }>(`/admin/orders/bulk-print-labels`, {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, ...payload }),
     }),

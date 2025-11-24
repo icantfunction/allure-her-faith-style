@@ -9,6 +9,7 @@ import Unsubscribe from "./pages/Unsubscribe";
 import ProductDetail from "./pages/ProductDetail";
 import AllProducts from "./pages/AllProducts";
 import Checkout from "./pages/Checkout";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 import AdminHome from "./pages/admin/Home";
 import AdminLogin from "./pages/admin/Login";
 import ForgotPassword from "./pages/admin/ForgotPassword";
@@ -37,6 +38,7 @@ const AppContent = () => {
       <Route path="/product/:productId" element={<ProductDetail />} />
       <Route path="/products" element={<AllProducts />} />
       <Route path="/checkout" element={<Checkout />} />
+      <Route path="/checkout/success" element={<CheckoutSuccess />} />
       <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/forgot" element={<ForgotPassword />} />

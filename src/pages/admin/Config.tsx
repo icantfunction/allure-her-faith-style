@@ -35,6 +35,7 @@ export default function Config() {
   
   // Shop config
   const [showViewAllButton, setShowViewAllButton] = React.useState(true);
+  const [showShopSection, setShowShopSection] = React.useState(true);
   
   const [saving, setSaving] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
@@ -72,6 +73,7 @@ export default function Config() {
         
         if (config.shop) {
           setShowViewAllButton(config.shop.showViewAllButton ?? true);
+          setShowShopSection(config.shop.showShopSection ?? true);
         }
       } catch (error) {
         console.error("Failed to load config:", error);
@@ -112,6 +114,7 @@ export default function Config() {
         },
         shop: {
           showViewAllButton,
+          showShopSection,
         },
       });
       
@@ -538,6 +541,21 @@ export default function Config() {
             <CardDescription>Configure storefront display options</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <Label htmlFor="shop-section-visibility" className="text-sm font-medium">
+                  Show Shop Section
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Display the shopping section on the homepage with products and promotional content
+                </p>
+              </div>
+              <Switch
+                id="shop-section-visibility"
+                checked={showShopSection}
+                onCheckedChange={setShowShopSection}
+              />
+            </div>
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="shop-view-all" className="text-sm font-medium">

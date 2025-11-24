@@ -1,4 +1,0 @@
-project_id = "hrukazznqazjgiatlowl"
-
-[functions.send-visitor-report]
-verify_jwt = false

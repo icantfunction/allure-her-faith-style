@@ -18,7 +18,12 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
   
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  const res = await fetch(`${API_BASE}${path}`, { 
+    ...init, 
+    headers,
+    credentials: "omit",
+    mode: "cors",
+  });
   if (!res.ok) {
     const msg = await res.text().catch(() => "");
     throw new Error(`${res.status} ${res.statusText} ${msg}`);
@@ -28,9 +33,15 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 export const PublicAPI = {
   listProducts: () =>
-    fetch(`${API_BASE}/public/products?siteId=${encodeURIComponent(SITE_ID)}`).then(r => r.json()),
+    fetch(`${API_BASE}/public/products?siteId=${encodeURIComponent(SITE_ID)}`, {
+      credentials: "omit",
+      mode: "cors",
+    }).then(r => r.json()),
   getProduct: (id: string) =>
-    fetch(`${API_BASE}/public/products/${encodeURIComponent(id)}?siteId=${encodeURIComponent(SITE_ID)}`).then(r => r.json()),
+    fetch(`${API_BASE}/public/products/${encodeURIComponent(id)}?siteId=${encodeURIComponent(SITE_ID)}`, {
+      credentials: "omit",
+      mode: "cors",
+    }).then(r => r.json()),
 };
 
 export const AdminAPI = {

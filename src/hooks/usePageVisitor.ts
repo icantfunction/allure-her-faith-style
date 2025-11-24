@@ -23,10 +23,9 @@ export const usePageVisitor = () => {
       try {
         // Log to AWS API (analytics aggregation)
         await recordVisit();
-        
-        console.log('Page visit logged:', location.pathname);
       } catch (error) {
-        console.error('Error logging page visit:', error);
+        // Silently fail - analytics should not impact user experience
+        // Error already handled in recordVisit function
       }
     };
 

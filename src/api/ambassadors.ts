@@ -61,6 +61,8 @@ async function request<T = any>(
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
+    credentials: "omit",
+    mode: "cors",
   });
 
   if (res.status === 204) {

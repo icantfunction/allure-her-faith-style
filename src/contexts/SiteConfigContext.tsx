@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { getPublicConfig, SiteConfigResponse, PopupConfig, BannerConfig } from "@/api/config";
+import { getPublicConfig, SiteConfigResponse, PopupConfig, BannerConfig, ShopConfig } from "@/api/config";
 
 interface SiteConfigContextValue {
   config: SiteConfigResponse | null;
@@ -8,6 +8,7 @@ interface SiteConfigContextValue {
   refreshConfig: () => Promise<void>;
   popup: PopupConfig;
   banner: BannerConfig;
+  shop: ShopConfig;
 }
 
 const SiteConfigContext = createContext<SiteConfigContextValue | null>(null);
@@ -31,6 +32,11 @@ const DEFAULT_BANNER: BannerConfig = {
   textColor: "#ffffff",
 };
 
+const DEFAULT_SHOP: ShopConfig = {
+  showViewAllButton: true,
+  showShopSection: true,
+};
+
 export function SiteConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<SiteConfigResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +56,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
         siteId: "my-site",
         popup: DEFAULT_POPUP,
         banner: DEFAULT_BANNER,
+        shop: DEFAULT_SHOP,
       });
     } finally {
       setLoading(false);
@@ -66,6 +73,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
 
   const popup = config?.popup || DEFAULT_POPUP;
   const banner = config?.banner || DEFAULT_BANNER;
+  const shop = config?.shop || DEFAULT_SHOP;
 
   return (
     <SiteConfigContext.Provider
@@ -76,6 +84,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
         refreshConfig,
         popup,
         banner,
+        shop,
       }}
     >
       {children}

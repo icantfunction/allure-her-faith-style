@@ -18,13 +18,27 @@ export type CheckoutItem = {
   imageUrl?: string;
 };
 
+// Stripe line item format with inline price data
+export type StripeLineItem = {
+  quantity: number;
+  price_data: {
+    currency: string;
+    product_data: {
+      name: string;
+      description?: string;
+      images?: string[];
+    };
+    unit_amount: number; // Amount in cents
+  };
+};
+
 export type CheckoutSessionResponse = {
   id: string;
   url: string;
 };
 
 export const createCheckoutSession = async (payload: {
-  lineItems: any[];
+  lineItems: StripeLineItem[];
   mode?: string;
   siteId: string;
 }) => {

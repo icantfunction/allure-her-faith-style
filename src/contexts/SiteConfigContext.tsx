@@ -71,7 +71,7 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
     await loadConfig();
   };
 
-  const popup = config?.popup || DEFAULT_POPUP;
+  const popup = config?.popups || config?.popup || DEFAULT_POPUP;
   const banner = config?.banner || DEFAULT_BANNER;
   const shop = config?.shop || DEFAULT_SHOP;
 

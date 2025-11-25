@@ -53,8 +53,10 @@ export default function Config() {
       if (theme.accent) setAccent(theme.accent);
     }
     
-    if (config.popup) {
-      const popup = config.popup as {
+    // Prefer popups (new) over popup (deprecated)
+    const popupConfig = config.popups || config.popup;
+    if (popupConfig) {
+      const popup = popupConfig as {
         enabled?: boolean;
         title?: string;
         message?: string;
@@ -130,7 +132,9 @@ export default function Config() {
     try {
       await adminUpdateConfig({
         theme: { primary, accent },
-        popup: {
+        fonts: {},
+        messages: {},
+        popups: {
           enabled: popupEnabled,
           title: popupTitle,
           message: popupMessage,
@@ -147,8 +151,8 @@ export default function Config() {
           textColor: bannerTextColor,
         },
         shop: {
-          showViewAllButton,
           showShopSection,
+          showViewAllButton,
         },
       });
       

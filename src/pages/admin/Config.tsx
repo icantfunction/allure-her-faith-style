@@ -45,38 +45,62 @@ export default function Config() {
   const { toast } = useToast();
   const { refreshConfig } = useSiteConfig();
 
+  // Helper function to update local state from config object
+  const updateStateFromConfig = React.useCallback((config: Record<string, unknown>) => {
+    if (config.theme) {
+      const theme = config.theme as { primary?: string; accent?: string };
+      if (theme.primary) setPrimary(theme.primary);
+      if (theme.accent) setAccent(theme.accent);
+    }
+    
+    if (config.popup) {
+      const popup = config.popup as {
+        enabled?: boolean;
+        title?: string;
+        message?: string;
+        ctaText?: string;
+        ctaUrl?: string;
+        delaySeconds?: number;
+      };
+      setPopupEnabled(popup.enabled || false);
+      setPopupTitle(popup.title || "Wait! Don't Miss Out 🌟");
+      setPopupMessage(popup.message || "Join our exclusive Insider's List and be the first to discover where faith meets fashion.");
+      setPopupCtaText(popup.ctaText || "Join Now");
+      setPopupCtaUrl(popup.ctaUrl || "/#email-signup");
+      setPopupDelaySeconds(popup.delaySeconds || 15);
+    }
+    
+    if (config.banner) {
+      const banner = config.banner as {
+        enabled?: boolean;
+        text?: string;
+        discountCode?: string;
+        linkUrl?: string;
+        backgroundColor?: string;
+        textColor?: string;
+      };
+      setBannerEnabled(banner.enabled || false);
+      setBannerText(banner.text || "Up to 15% OFF • USE CODE: DINA");
+      setBannerDiscountCode(banner.discountCode || "DINA");
+      setBannerLinkUrl(banner.linkUrl || "#");
+      setBannerBackgroundColor(banner.backgroundColor || "#000000");
+      setBannerTextColor(banner.textColor || "#ffffff");
+    }
+    
+    if (config.shop) {
+      const shop = config.shop as { showViewAllButton?: boolean; showShopSection?: boolean };
+      setShowViewAllButton(shop.showViewAllButton ?? true);
+      setShowShopSection(shop.showShopSection ?? true);
+    }
+  }, []);
+
   // Load current config on mount
   React.useEffect(() => {
     async function loadConfig() {
       try {
         const config = await getAdminConfig();
-        
-        if (config.theme) {
-          if (config.theme.primary) setPrimary(config.theme.primary);
-          if (config.theme.accent) setAccent(config.theme.accent);
-        }
-        
-        if (config.popup) {
-          setPopupEnabled(config.popup.enabled || false);
-          setPopupTitle(config.popup.title || "Wait! Don't Miss Out 🌟");
-          setPopupMessage(config.popup.message || "Join our exclusive Insider's List and be the first to discover where faith meets fashion.");
-          setPopupCtaText(config.popup.ctaText || "Join Now");
-          setPopupCtaUrl(config.popup.ctaUrl || "/#email-signup");
-          setPopupDelaySeconds(config.popup.delaySeconds || 15);
-        }
-        
-        if (config.banner) {
-          setBannerEnabled(config.banner.enabled || false);
-          setBannerText(config.banner.text || "Up to 15% OFF • USE CODE: DINA");
-          setBannerDiscountCode(config.banner.discountCode || "DINA");
-          setBannerLinkUrl(config.banner.linkUrl || "#");
-          setBannerBackgroundColor(config.banner.backgroundColor || "#000000");
-          setBannerTextColor(config.banner.textColor || "#ffffff");
-        }
-        
-        if (config.shop) {
-          setShowViewAllButton(config.shop.showViewAllButton ?? true);
-          setShowShopSection(config.shop.showShopSection ?? true);
+        if (config) {
+          updateStateFromConfig(config);
         }
       } catch (error) {
         // Silently fail if API is unavailable - use default values
@@ -98,7 +122,7 @@ export default function Config() {
     }
     
     loadConfig();
-  }, [toast]);
+  }, [toast, updateStateFromConfig]);
 
   async function save() {
     setSaving(true);
@@ -128,7 +152,13 @@ export default function Config() {
         },
       });
       
-      // Refresh the config from the server to ensure consistency
+      // Reload the config from the admin endpoint to ensure local state reflects persisted data
+      const freshConfig = await getAdminConfig();
+      if (freshConfig) {
+        updateStateFromConfig(freshConfig);
+      }
+      
+      // Also refresh the public config context for other parts of the app
       await refreshConfig();
       
       setSaved(true);
@@ -137,10 +167,11 @@ export default function Config() {
         description: "Site configuration updated successfully",
       });
       setTimeout(() => setSaved(false), 3000);
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : "Failed to update configuration";
       toast({
         title: "Error",
-        description: e.message || "Failed to update configuration",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

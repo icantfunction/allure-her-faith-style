@@ -62,12 +62,12 @@ export default function Config() {
         ctaUrl?: string;
         delaySeconds?: number;
       };
-      setPopupEnabled(popup.enabled || false);
+      setPopupEnabled(popup.enabled ?? false);
       setPopupTitle(popup.title || "Wait! Don't Miss Out 🌟");
       setPopupMessage(popup.message || "Join our exclusive Insider's List and be the first to discover where faith meets fashion.");
       setPopupCtaText(popup.ctaText || "Join Now");
       setPopupCtaUrl(popup.ctaUrl || "/#email-signup");
-      setPopupDelaySeconds(popup.delaySeconds || 15);
+      setPopupDelaySeconds(popup.delaySeconds ?? 15);
     }
     
     if (config.banner) {
@@ -79,7 +79,7 @@ export default function Config() {
         backgroundColor?: string;
         textColor?: string;
       };
-      setBannerEnabled(banner.enabled || false);
+      setBannerEnabled(banner.enabled ?? false);
       setBannerText(banner.text || "Up to 15% OFF • USE CODE: DINA");
       setBannerDiscountCode(banner.discountCode || "DINA");
       setBannerLinkUrl(banner.linkUrl || "#");

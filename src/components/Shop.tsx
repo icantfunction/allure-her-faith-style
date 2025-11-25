@@ -39,7 +39,7 @@ const Shop = () => {
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
-  const { config, loading: configLoading } = useSiteConfig();
+  const { shop, loading: configLoading } = useSiteConfig();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const { toast } = useToast();
@@ -72,8 +72,9 @@ const Shop = () => {
   const heroRef = useAnimeOnScroll(heroAnimation);
   const filterRowRef = useAnimeOnScroll(filterRowAnimation);
 
-  const showViewAllButton = config?.shop?.showViewAllButton ?? true;
-  const isShopHidden = config?.shop?.showShopSection === false;
+  // Use shop config from context with fallback defaults
+  const showViewAllButton = shop.showViewAllButton ?? true;
+  const showShopSection = shop.showShopSection ?? true;
 
   const filterProducts = useCallback((list: Product[], filterId: FilterId) => {
     const visible = list.filter((p) => p.visible !== false);
@@ -215,7 +216,7 @@ const Shop = () => {
     );
   }
 
-  if (isShopHidden) {
+  if (!showShopSection) {
     return null;
   }
 

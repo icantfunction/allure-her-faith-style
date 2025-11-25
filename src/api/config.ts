@@ -38,12 +38,26 @@ export interface ShopConfig {
   showShopSection?: boolean;
 }
 
+export interface FontsConfig {
+  heading?: string;
+  body?: string;
+}
+
+export interface MessagesConfig {
+  welcome?: string;
+  checkout?: string;
+  confirmation?: string;
+}
+
 export interface SiteConfigResponse {
   siteId: string;
   theme?: ThemeConfig;
   popup?: PopupConfig;
+  popups?: PopupConfig;
   banner?: BannerConfig;
   shop?: ShopConfig;
+  fonts?: FontsConfig;
+  messages?: MessagesConfig;
 }
 
 // ---------- PUBLIC: GET /public/theme ----------
@@ -79,8 +93,11 @@ export async function getPublicConfig(): Promise<SiteConfigResponse> {
 interface AdminUpdateConfigInput {
   theme?: ThemeConfig;
   popup?: PopupConfig;
+  popups?: PopupConfig;
   banner?: BannerConfig;
   shop?: ShopConfig;
+  fonts?: FontsConfig;
+  messages?: MessagesConfig;
 }
 
 /**
@@ -98,14 +115,17 @@ export async function adminUpdateConfig(
   const token = await getAuthToken();
   if (!token) throw new Error("Not authenticated");
 
-  const body: any = {
+  const body: Record<string, unknown> = {
     siteId: SITE_ID,
   };
 
   if (input.theme) body.theme = input.theme;
   if (input.popup) body.popup = input.popup;
+  if (input.popups) body.popups = input.popups;
   if (input.banner) body.banner = input.banner;
   if (input.shop) body.shop = input.shop;
+  if (input.fonts) body.fonts = input.fonts;
+  if (input.messages) body.messages = input.messages;
 
   const res = await fetch(`${API_BASE}/admin/config`, {
     method: "PUT",

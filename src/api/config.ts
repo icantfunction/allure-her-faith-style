@@ -52,7 +52,9 @@ export interface MessagesConfig {
 export interface SiteConfigResponse {
   siteId: string;
   theme?: ThemeConfig;
+  /** @deprecated Use `popups` instead for new implementations */
   popup?: PopupConfig;
+  /** Popup configuration - preferred field name */
   popups?: PopupConfig;
   banner?: BannerConfig;
   shop?: ShopConfig;
@@ -92,7 +94,9 @@ export async function getPublicConfig(): Promise<SiteConfigResponse> {
 
 interface AdminUpdateConfigInput {
   theme?: ThemeConfig;
+  /** @deprecated Use `popups` instead for new implementations */
   popup?: PopupConfig;
+  /** Popup configuration - preferred field name */
   popups?: PopupConfig;
   banner?: BannerConfig;
   shop?: ShopConfig;

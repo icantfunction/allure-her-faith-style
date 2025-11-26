@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { subscribeEmail } from "@/api/allureherApi";
+import { subscribeToEmails } from "@/api/email-subscribe";
 
 const Newsletter = () => {
   const [email, setEmail] = useState("");
@@ -42,15 +42,15 @@ const Newsletter = () => {
     setShowDialog(false);
 
     try {
-      await subscribeEmail(pendingEmail, "newsletter");
+      await subscribeToEmails(pendingEmail);
       
       localStorage.setItem(`subscriber_${pendingEmail}_devotionals`, String(wantsDevotionals));
       
       toast({
         title: "Welcome to our newsletter!",
         description: wantsDevotionals 
-          ? "Thank you for subscribing! You'll receive updates and devotionals soon."
-          : "Thank you for subscribing! You'll receive updates soon.",
+          ? "Check your inbox for a welcome email 🎉"
+          : "Check your inbox for a confirmation email 🎉",
       });
       
       setEmail("");

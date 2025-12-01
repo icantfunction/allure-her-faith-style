@@ -1,0 +1,6 @@
+# Hide bot contributions by remapping to repository owner
+# This maps the gpt-engineer-app[bot] author name/email (used by lovable-dev[bot]) to icantfunction
+icantfunction <103004239+icantfunction@users.noreply.github.com> gpt-engineer-app[bot] <159125892+gpt-engineer-app[bot]@users.noreply.github.com>
+
+# Consolidate icantfunction's personal email to their GitHub noreply email
+icantfunction <103004239+icantfunction@users.noreply.github.com> icantfunction <opendavidfunction@gmail.com>

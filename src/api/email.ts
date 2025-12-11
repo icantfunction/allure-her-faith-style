@@ -63,6 +63,16 @@ export async function adminListSubscribers() {
   }
   
   const json = await res.json();
+  
+  // Backend returns array directly: [{ email, status, createdAt }, ...]
+  // Handle both array response and legacy { items: [...] } format
+  if (Array.isArray(json)) {
+    return {
+      items: json as Subscriber[],
+      nextToken: null,
+    };
+  }
+  
   return json as {
     items: Subscriber[];
     nextToken: string | null;
@@ -104,13 +114,17 @@ export async function adminListAllSubscribers(): Promise<Subscriber[]> {
       throw new Error(`Failed to load subscribers: ${res.status} ${text}`);
     }
 
-    const json = await res.json() as {
-      items: Subscriber[];
-      nextToken: string | null;
-    };
-
-    allSubscribers.push(...(json.items || []));
-    nextToken = json.nextToken;
+    const json = await res.json();
+    
+    // Backend returns array directly: [{ email, status, createdAt }, ...]
+    // Handle both array response and legacy { items: [...] } format
+    if (Array.isArray(json)) {
+      allSubscribers.push(...json);
+      nextToken = null; // Array response means no pagination
+    } else {
+      allSubscribers.push(...(json.items || []));
+      nextToken = json.nextToken;
+    }
     loopGuard++;
 
     if (loopGuard >= MAX_PAGES) {

@@ -1,4 +1,4 @@
-const API_BASE_URL = "https://d1pqkh0r4pj29.cloudfront.net";
+const API_BASE_URL = "https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod";
 const SITE_ID = "my-site";
 
 export type Subscriber = {

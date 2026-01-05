@@ -8,11 +8,10 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ShoppingBag, Trash2, Minus, Plus, Loader2, Truck } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { createCheckoutSession } from "@/api/checkout";
+import { calculateShipping, createCheckoutSession, ShippingQuote } from "@/lib/checkoutApi";
 import { SITE_ID } from "@/utils/siteId";
-import { useShippingCalculation, ShippingAddressInput } from "@/hooks/useShippingCalculation";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Checkout() {
@@ -29,33 +28,65 @@ export default function Checkout() {
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const { loading: shippingLoading, quote: shippingQuote, error: shippingError, fetchShipping } = useShippingCalculation();
+  
+  // Shipping state
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
+  const [shippingError, setShippingError] = useState<string | null>(null);
+  const requestIdRef = useRef(0);
 
   // Calculate total quantity
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Debounce address fields to avoid too many API calls
-  const debouncedAddress = useDebounce(address, 500);
-  const debouncedCity = useDebounce(city, 500);
-  const debouncedState = useDebounce(state, 500);
-  const debouncedZip = useDebounce(zip, 500);
+  // Debounce address fields (400ms)
+  const debouncedAddress = useDebounce(address, 400);
+  const debouncedCity = useDebounce(city, 400);
+  const debouncedState = useDebounce(state, 400);
+  const debouncedZip = useDebounce(zip, 400);
 
   // Fetch shipping when address changes
-  useEffect(() => {
-    if (debouncedAddress && debouncedCity && debouncedState && debouncedZip && totalQuantity > 0) {
-      const shippingAddress: ShippingAddressInput = {
-        name: `${firstName} ${lastName}`.trim() || "Customer",
-        line1: debouncedAddress,
-        line2: addressLine2 || undefined,
-        city: debouncedCity,
-        state: debouncedState,
-        postal_code: debouncedZip,
-        country: "US",
-      };
-      fetchShipping(shippingAddress, totalQuantity);
+  const fetchShipping = useCallback(async () => {
+    if (!debouncedAddress || !debouncedCity || !debouncedState || !debouncedZip || totalQuantity <= 0) {
+      setShippingQuote(null);
+      setShippingError(null);
+      return;
     }
-  }, [debouncedAddress, debouncedCity, debouncedState, debouncedZip, totalQuantity, firstName, lastName, addressLine2, fetchShipping]);
+
+    const currentRequestId = ++requestIdRef.current;
+    setShippingLoading(true);
+    setShippingError(null);
+
+    try {
+      const quote = await calculateShipping({
+        quantity: totalQuantity,
+        address: {
+          name: `${firstName} ${lastName}`.trim() || "Customer",
+          line1: debouncedAddress,
+          line2: addressLine2 || undefined,
+          city: debouncedCity,
+          state: debouncedState,
+          postal_code: debouncedZip,
+          country: "US",
+        },
+      });
+
+      // Only update if this is the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setShippingQuote(quote);
+        setShippingLoading(false);
+      }
+    } catch (err: any) {
+      if (currentRequestId === requestIdRef.current) {
+        setShippingError(err?.message || "Failed to calculate shipping");
+        setShippingQuote(null);
+        setShippingLoading(false);
+      }
+    }
+  }, [debouncedAddress, debouncedCity, debouncedState, debouncedZip, totalQuantity, firstName, lastName, addressLine2]);
+
+  useEffect(() => {
+    fetchShipping();
+  }, [fetchShipping]);
 
   // Show toast when shipping calculation fails
   useEffect(() => {
@@ -82,19 +113,19 @@ export default function Checkout() {
   const canProceedToPayment = !!(shippingQuote && !shippingLoading && !shippingError);
 
   const handleCheckout = async () => {
-    if (!import.meta.env.VITE_CHECKOUT_ENDPOINT) {
+    if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
       toast({
-        title: "Checkout not configured",
-        description: "Add VITE_CHECKOUT_ENDPOINT to your env to enable payments.",
+        title: "Missing details",
+        description: "Please complete your shipping contact information.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
+    if (!shippingQuote) {
       toast({
-        title: "Missing details",
-        description: "Please complete your shipping contact information.",
+        title: "Shipping required",
+        description: "Please wait for shipping calculation to complete.",
         variant: "destructive",
       });
       return;
@@ -111,39 +142,27 @@ export default function Checkout() {
         },
       }));
 
-      const session = await createCheckoutSession({
+      const shippingAddress = {
+        name: `${firstName} ${lastName}`.trim(),
+        line1: address,
+        line2: addressLine2 || undefined,
+        city,
+        state,
+        postal_code: zip,
+        country: "US",
+      };
+
+      const { url } = await createCheckoutSession({
         lineItems,
         mode: "payment",
         siteId: SITE_ID,
-        customer: {
-          firstName,
-          lastName,
-          email,
-          phone: phone || undefined,
-        },
-        shippingAddress: {
-          name: `${firstName} ${lastName}`.trim(),
-          line1: address,
-          line2: addressLine2 || undefined,
-          city,
-          state,
-          postal_code: zip,
-          country: "US",
-        },
-        shippingCostCents: shippingQuote!.shippingAmountCents,
-        carrier: shippingQuote?.carrier,
-        service: shippingQuote?.service,
-        deliveryDays: shippingQuote?.deliveryDays,
-        totalWeight: shippingQuote?.totalWeight,
+        shippingCostCents: shippingQuote.shippingAmountCents,
+        shippingAddress,
+        shippingQuote,
       });
 
-      if (session?.url) {
-        window.location.href = session.url;
-      } else {
-        throw new Error("No checkout URL returned");
-      }
+      window.location.assign(url);
     } catch (error: any) {
-      console.error(error);
       toast({
         title: "Checkout failed",
         description: error.message || "We couldn't start checkout. Please try again.",

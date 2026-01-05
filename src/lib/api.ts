@@ -1,5 +1,9 @@
-const API_BASE = import.meta.env.VITE_API_BASE as string;
-const SITE_ID = import.meta.env.VITE_SITE_ID as string;
+const API_BASE = import.meta.env.VITE_API_BASE ?? "https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod";
+const SITE_ID = import.meta.env.VITE_SITE_ID ?? "my-site";
+
+// Shipping API endpoint
+const SHIPPING_API_URL = import.meta.env.VITE_SHIPPING_API_URL ?? 
+  "https://1f7dvduzvg.execute-api.us-east-1.amazonaws.com/calculate-shipping";
 
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -31,6 +35,63 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   return res.status === 204 ? (undefined as T) : res.json();
 }
 
+// Types
+export type ShippingAddress = {
+  name?: string;
+  line1?: string;
+  line2?: string;
+  city?: string;
+  state?: string;
+  postal_code?: string;
+  country?: string;
+};
+
+export type ShippingQuote = {
+  success: true;
+  shippingAmountCents: number;
+  rate: number;
+  currency: string;
+  carrier: string;
+  service: string;
+  deliveryDays: number | null;
+  quantity: number;
+  totalWeight: number;
+  boxHeight: number;
+};
+
+export type OrderItem = {
+  productId: string;
+  name: string;
+  quantity: number;
+  price: number;
+  weight?: number;
+};
+
+export type Order = {
+  orderId: string;
+  siteId?: string;
+  customerName: string;
+  email: string;
+  phone?: string;
+  status: string;
+  total: number;
+  subtotal?: number;
+  shippingCost?: number;
+  taxAmount?: number;
+  currency?: string;
+  shippingMethod?: string;
+  labelGeneratedAt?: string;
+  trackingId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  hasLabel?: boolean;
+  items?: OrderItem[];
+  totalQuantity?: number;
+  totalWeight?: number;
+  shippingAddress?: ShippingAddress;
+  notes?: string;
+};
+
 export const PublicAPI = {
   listProducts: () =>
     fetch(`${API_BASE}/public/products?siteId=${encodeURIComponent(SITE_ID)}`, {
@@ -47,32 +108,48 @@ export const PublicAPI = {
 export const AdminAPI = {
   dailyAnalytics: (start: string, end: string) =>
     apiFetch<any[]>(`/admin/analytics/daily?siteId=${encodeURIComponent(SITE_ID)}&start=${start}&end=${end}`),
+  
   updateTheme: (theme: any) =>
     apiFetch<void>(`/admin/config`, {
       method: "PUT",
       body: JSON.stringify({ siteId: SITE_ID, theme }),
     }),
+  
   presignImage: (fileName: string, contentType: string) =>
     apiFetch<{ key: string; uploadUrl: string; publicUrl: string }>(`/admin/images/presign`, {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, fileName, contentType }),
     }),
+  
   createProduct: (p: { name: string; price: number; images?: string[]; description?: string; sku?: string }) =>
     apiFetch<{ productId: string }>(`/admin/products`, {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
     }),
+  
   updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string; visible: boolean }>) =>
     apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
       method: "PUT",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
     }),
+  
   deleteProduct: (id: string) =>
     apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
       method: "DELETE",
       body: JSON.stringify({ siteId: SITE_ID }),
     }),
-  listOrders: (params: Partial<{ status: string; method: string; hasLabel: boolean; q: string; nextToken: string; limit: number; from: string; to: string }>) => {
+  
+  // Orders
+  listOrders: async (params: Partial<{ 
+    status: string; 
+    method: string; 
+    hasLabel: boolean; 
+    q: string; 
+    nextToken: string; 
+    limit: number; 
+    from: string; 
+    to: string 
+  }>) => {
     const search = new URLSearchParams();
     search.set("siteId", SITE_ID);
     if (params.status) search.set("status", params.status);
@@ -83,18 +160,66 @@ export const AdminAPI = {
     if (params.limit) search.set("limit", String(params.limit));
     if (params.from) search.set("from", params.from);
     if (params.to) search.set("to", params.to);
-    return apiFetch<{ items: any[]; nextToken?: string }>(`/admin/orders?${search.toString()}`);
+    
+    const response = await apiFetch<{ items: Order[]; nextToken?: string } | Order[]>(
+      `/admin/orders?${search.toString()}`
+    );
+    
+    // Handle both array response and { items: [...] } format
+    if (Array.isArray(response)) {
+      return { items: response, nextToken: undefined };
+    }
+    return response;
   },
+  
   getOrder: (orderId: string) =>
-    apiFetch<any>(`/admin/orders/${encodeURIComponent(orderId)}?siteId=${encodeURIComponent(SITE_ID)}`),
+    apiFetch<Order>(`/admin/orders/${encodeURIComponent(orderId)}?siteId=${encodeURIComponent(SITE_ID)}`),
+  
   bulkPrintLabels: (payload: { orderIds: string[]; storeName: string; carrier?: string; format?: string }) =>
     apiFetch<{ pdfUrl?: string; updated?: any[] }>(`/admin/orders/bulk-print-labels`, {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, ...payload }),
     }),
+  
   updateOrderStatus: (orderId: string, status: string) =>
     apiFetch<void>(`/admin/orders/${encodeURIComponent(orderId)}/status`, {
       method: "POST",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ siteId: SITE_ID, status }),
     }),
 };
+
+// Shipping Calculator API
+export async function calculateShipping(params: {
+  quantity?: number;
+  address: {
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country?: string;
+  };
+}): Promise<ShippingQuote> {
+  const res = await fetch(SHIPPING_API_URL, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(params),
+  });
+
+  const text = await res.text();
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = { raw: text };
+  }
+
+  if (!res.ok) {
+    throw new Error(data?.error || data?.message || `Shipping API error ${res.status}`);
+  }
+
+  return data as ShippingQuote;
+}

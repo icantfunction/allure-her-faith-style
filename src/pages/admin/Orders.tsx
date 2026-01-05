@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AdminAPI } from "@/lib/api";
+import { AdminAPI, Order } from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,27 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Loader2, Search, Printer, PackageCheck, Truck, Filter, Sparkles } from "lucide-react";
+import { Loader2, Search, Printer, Filter, Sparkles, Eye, Mail, Phone, MapPin, Package, Scale } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
-
-type Order = {
-  orderId: string;
-  customerName: string;
-  email: string;
-  status: string;
-  total: number;
-  currency?: string;
-  shippingMethod?: string;
-  labelGeneratedAt?: string;
-  trackingId?: string;
-  createdAt?: string;
-  hasLabel?: boolean;
-  shippingAddress?: {
-    city?: string;
-    state?: string;
-    country?: string;
-  };
-};
+import { OrderDetailSheet } from "@/components/admin/OrderDetailSheet";
 
 const statusOptions = [
   { label: "All", value: "" },
@@ -53,39 +35,68 @@ const OrderRow = ({
   selected,
   onSelect,
   onPrint,
-  onStatus,
+  onView,
 }: {
   order: Order;
   selected: boolean;
   onSelect: (checked: boolean) => void;
   onPrint: (orderId: string) => void;
-  onStatus: (orderId: string, status: string) => void;
-}) => (
-  <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] items-center gap-4 py-3 border-b">
-    <Checkbox checked={selected} onCheckedChange={(v) => onSelect(Boolean(v))} />
-    <div>
-      <div className="font-medium text-foreground">{order.orderId}</div>
-      <div className="text-sm text-muted-foreground">{order.customerName}</div>
+  onView: (order: Order) => void;
+}) => {
+  const totalQty = order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? order.totalQuantity ?? 0;
+  const totalWeight = order.items?.reduce((sum, item) => sum + (item.weight || 0) * item.quantity, 0) ?? order.totalWeight ?? 0;
+
+  return (
+    <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr,auto] items-center gap-4 py-3 border-b hover:bg-muted/30 transition-colors">
+      <Checkbox checked={selected} onCheckedChange={(v) => onSelect(Boolean(v))} />
+      <div>
+        <div className="font-medium text-foreground">{order.orderId}</div>
+        <div className="text-sm text-muted-foreground">{order.customerName}</div>
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5 text-sm">
+          <Mail className="h-3 w-3 text-muted-foreground" />
+          <span className="truncate max-w-[140px]">{order.email}</span>
+        </div>
+        {order.phone && (
+          <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <Phone className="h-3 w-3" />
+            <span>{order.phone}</span>
+          </div>
+        )}
+      </div>
+      <div className="space-y-1">
+        <div className="flex items-center gap-1.5 text-sm">
+          <Package className="h-3 w-3 text-muted-foreground" />
+          <span>Qty: {totalQty}</span>
+        </div>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Scale className="h-3 w-3" />
+          <span>{totalWeight > 0 ? `${totalWeight} oz` : "—"}</span>
+        </div>
+      </div>
+      <div>
+        <div className="text-sm font-medium text-foreground">{formatCurrency(order.total, order.currency)}</div>
+        <div className="text-xs text-muted-foreground">{order.shippingMethod || "Standard"}</div>
+        <div className="text-xs text-muted-foreground">
+          {order.createdAt ? format(new Date(order.createdAt), "MMM d, h:mm a") : "—"}
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge variant={order.status === "SHIPPED" ? "default" : "secondary"}>{order.status || "NEW"}</Badge>
+        {order.hasLabel && <Badge variant="outline">Label</Badge>}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" size="sm" onClick={() => onView(order)} title="View details">
+          <Eye className="h-4 w-4" />
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => onPrint(order.orderId)} title="Print label">
+          <Printer className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
-    <div>
-      <div className="text-sm text-foreground">{formatCurrency(order.total, order.currency)}</div>
-      <div className="text-xs text-muted-foreground">{order.shippingMethod || "Standard"}</div>
-    </div>
-    <div className="text-sm text-muted-foreground">
-      {order.createdAt ? format(new Date(order.createdAt), "MMM d, h:mm a") : "—"}
-    </div>
-    <div className="flex items-center gap-2">
-      <Badge variant={order.status === "SHIPPED" ? "default" : "secondary"}>{order.status || "NEW"}</Badge>
-      {order.hasLabel && <Badge variant="outline">Label</Badge>}
-      {order.trackingId && <Badge variant="outline">{order.trackingId}</Badge>}
-    </div>
-    <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={() => onPrint(order.orderId)}>
-        <Printer className="h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-);
+  );
+};
 
 export default function Orders() {
   const { toast } = useToast();
@@ -101,6 +112,8 @@ export default function Orders() {
   const [carrier, setCarrier] = useState("Standard");
   const [formatOption, setFormatOption] = useState("4x6");
   const [busy, setBusy] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -264,11 +277,12 @@ export default function Orders() {
             </p>
           ) : (
             <>
-              <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,auto] gap-4 pb-2 text-sm text-muted-foreground border-b">
+              <div className="grid grid-cols-[auto,1fr,1fr,1fr,1fr,1fr,auto] gap-4 pb-2 text-sm text-muted-foreground border-b">
                 <div><Checkbox checked={selectedIds.length === orders.length} onCheckedChange={(v) => toggleAll(Boolean(v))} /></div>
                 <div>Order</div>
-                <div>Total / Method</div>
-                <div>Date</div>
+                <div>Contact</div>
+                <div>Qty / Weight</div>
+                <div>Total</div>
                 <div>Status</div>
                 <div>Actions</div>
               </div>
@@ -279,7 +293,10 @@ export default function Orders() {
                   selected={!!selected[order.orderId]}
                   onSelect={(v) => setSelected((prev) => ({ ...prev, [order.orderId]: v }))}
                   onPrint={(id) => handlePrint([id])}
-                  onStatus={handleStatus}
+                  onView={(o) => {
+                    setSelectedOrder(o);
+                    setDetailOpen(true);
+                  }}
                 />
               ))}
             </>
@@ -298,6 +315,11 @@ export default function Orders() {
         setFormatOption={setFormatOption}
         onPrint={() => handlePrint(selectedIds)}
         busy={busy}
+      />
+      <OrderDetailSheet
+        order={selectedOrder}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
       />
     </div>
   );

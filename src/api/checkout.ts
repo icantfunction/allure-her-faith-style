@@ -37,11 +37,37 @@ export type CheckoutSessionResponse = {
   url: string;
 };
 
-export const createCheckoutSession = async (payload: {
+export type CheckoutCustomerPayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+};
+
+export type CheckoutShippingPayload = {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postal_code: string;
+  country?: string;
+};
+
+export type CreateCheckoutPayload = {
   lineItems: StripeLineItem[];
   mode?: string;
   siteId: string;
-}) => {
+  customer?: CheckoutCustomerPayload;
+  shippingAddress?: CheckoutShippingPayload;
+  shippingCostCents?: number;
+  carrier?: string;
+  service?: string;
+  deliveryDays?: number | null;
+  totalWeight?: number;
+};
+
+export const createCheckoutSession = async (payload: CreateCheckoutPayload) => {
   const endpoint = import.meta.env.VITE_CHECKOUT_ENDPOINT;
   if (!endpoint) {
     throw new Error("Checkout endpoint missing. Set VITE_CHECKOUT_ENDPOINT in your env.");

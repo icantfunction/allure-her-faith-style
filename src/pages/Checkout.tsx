@@ -5,17 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, ShoppingBag, Trash2, Minus, Plus } from "lucide-react";
+import { ChevronRight, ShoppingBag, Trash2, Minus, Plus, Loader2, Truck } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { createCheckoutSession } from "@/api/checkout";
 import { SITE_ID } from "@/utils/siteId";
-import { useStripe, useElements, AddressElement, PaymentElement } from "@stripe/react-stripe-js";
+import { useShippingCalculation, ShippingAddressInput } from "@/hooks/useShippingCalculation";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function Checkout() {
-  const { items, totalPrice, removeFromCart, updateQuantity } = useCart();
+  const { items, totalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [firstName, setFirstName] = useState("");
@@ -23,15 +24,48 @@ export default function Checkout() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const { loading: shippingLoading, quote: shippingQuote, error: shippingError, fetchShipping } = useShippingCalculation();
+
+  // Calculate total quantity
+  const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Debounce address fields to avoid too many API calls
+  const debouncedAddress = useDebounce(address, 500);
+  const debouncedCity = useDebounce(city, 500);
+  const debouncedState = useDebounce(state, 500);
+  const debouncedZip = useDebounce(zip, 500);
+
+  // Fetch shipping when address changes
+  useEffect(() => {
+    if (debouncedAddress && debouncedCity && debouncedState && debouncedZip && totalQuantity > 0) {
+      const shippingAddress: ShippingAddressInput = {
+        name: `${firstName} ${lastName}`.trim() || "Customer",
+        line1: debouncedAddress,
+        line2: addressLine2 || undefined,
+        city: debouncedCity,
+        state: debouncedState,
+        postal_code: debouncedZip,
+        country: "US",
+      };
+      fetchShipping(shippingAddress, totalQuantity);
+    }
+  }, [debouncedAddress, debouncedCity, debouncedState, debouncedZip, totalQuantity, firstName, lastName, addressLine2, fetchShipping]);
+
   const subtotal = totalPrice;
   const tax = subtotal * 0.08; // 8% tax
-  const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-  const total = subtotal + tax + shipping;
+  
+  // Use real shipping quote if available, otherwise show estimate
+  const shippingCost = shippingQuote ? shippingQuote.shippingAmountCents / 100 : null;
+  const estimatedShipping = subtotal > 100 ? 0 : 10;
+  const displayShipping = shippingCost !== null ? shippingCost : estimatedShipping;
+  
+  const total = subtotal + tax + displayShipping;
 
   const handleCheckout = async () => {
     if (!import.meta.env.VITE_CHECKOUT_ENDPOINT) {
@@ -67,6 +101,26 @@ export default function Checkout() {
         lineItems,
         mode: "payment",
         siteId: SITE_ID,
+        customer: {
+          firstName,
+          lastName,
+          email,
+          phone: phone || undefined,
+        },
+        shippingAddress: {
+          name: `${firstName} ${lastName}`.trim(),
+          line1: address,
+          line2: addressLine2 || undefined,
+          city,
+          state,
+          postal_code: zip,
+          country: "US",
+        },
+        shippingCostCents: shippingQuote?.shippingAmountCents ?? Math.round(estimatedShipping * 100),
+        carrier: shippingQuote?.carrier,
+        service: shippingQuote?.service,
+        deliveryDays: shippingQuote?.deliveryDays,
+        totalWeight: shippingQuote?.totalWeight,
       });
 
       if (session?.url) {
@@ -228,7 +282,11 @@ export default function Checkout() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address">Address</Label>
-                    <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} />
+                    <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Street address" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="addressLine2">Address Line 2 (optional)</Label>
+                    <Input id="addressLine2" value={addressLine2} onChange={(e) => setAddressLine2(e.target.value)} placeholder="Apt, suite, unit, etc." />
                   </div>
                   <div className="grid md:grid-cols-3 gap-4">
                     <div className="space-y-2">
@@ -237,7 +295,7 @@ export default function Checkout() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="state">State</Label>
-                      <Input id="state" value={state} onChange={(e) => setState(e.target.value)} />
+                      <Input id="state" value={state} onChange={(e) => setState(e.target.value)} placeholder="e.g., FL" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="zip">ZIP Code</Label>
@@ -263,20 +321,52 @@ export default function Checkout() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="text-muted-foreground">Subtotal ({totalQuantity} items)</span>
                       <span className="text-foreground">${subtotal.toFixed(2)}</span>
                     </div>
+                    
+                    {/* Shipping Section */}
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Shipping</span>
+                      <span className="text-muted-foreground flex items-center gap-1">
+                        Shipping
+                        {shippingLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                      </span>
                       <span className="text-foreground">
-                        {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                        {shippingLoading ? (
+                          "Calculating..."
+                        ) : shippingQuote ? (
+                          shippingCost === 0 ? "FREE" : `$${shippingCost!.toFixed(2)}`
+                        ) : (
+                          displayShipping === 0 ? "FREE" : `~$${displayShipping.toFixed(2)}`
+                        )}
                       </span>
                     </div>
+                    
+                    {/* Shipping Details */}
+                    {shippingQuote && (
+                      <div className="bg-muted/50 rounded-lg p-3 text-xs space-y-1">
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Truck className="h-3 w-3" />
+                          <span>{shippingQuote.carrier} - {shippingQuote.service}</span>
+                        </div>
+                        {shippingQuote.deliveryDays && (
+                          <p className="text-muted-foreground">
+                            Estimated delivery: {shippingQuote.deliveryDays} business day{shippingQuote.deliveryDays > 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {shippingError && (
+                      <p className="text-xs text-destructive">{shippingError}</p>
+                    )}
+                    
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Tax (8%)</span>
                       <span className="text-foreground">${tax.toFixed(2)}</span>
                     </div>
-                    {subtotal < 100 && (
+                    
+                    {!shippingQuote && subtotal < 100 && (
                       <p className="text-xs text-muted-foreground">
                         Add ${(100 - subtotal).toFixed(2)} more for free shipping
                       </p>
@@ -293,7 +383,7 @@ export default function Checkout() {
                   <Button
                     className="w-full btn-luxury"
                     size="lg"
-                    disabled={submitting}
+                    disabled={submitting || shippingLoading}
                     onClick={handleCheckout}
                   >
                     {submitting ? "Redirecting..." : "Proceed to Payment"}
@@ -315,111 +405,3 @@ export default function Checkout() {
     </div>
   );
 }
-
-type AddressAndPaymentProps = {
-  onShippingChange: (value: any) => void;
-  submitting: boolean;
-  setSubmitting: (v: boolean) => void;
-  successUrl: string;
-  cancelUrl: string;
-  shippingDetails: any;
-};
-
-const AddressAndPayment = ({
-  onShippingChange,
-  submitting,
-  setSubmitting,
-  successUrl,
-  cancelUrl,
-  shippingDetails,
-}: AddressAndPaymentProps) => {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-
-  const handleSubmit = async () => {
-    if (!stripe || !elements) return;
-    if (!shippingDetails) {
-      toast({
-        title: "Missing address",
-        description: "Please complete your shipping address and phone.",
-        variant: "destructive",
-      });
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: successUrl,
-          shipping: shippingDetails
-            ? {
-                name: `${shippingDetails.name || ""}`.trim(),
-                phone: shippingDetails.phone,
-                address: {
-                  line1: shippingDetails.address?.line1,
-                  line2: shippingDetails.address?.line2,
-                  city: shippingDetails.address?.city,
-                  state: shippingDetails.address?.state,
-                  postal_code: shippingDetails.address?.postal_code,
-                  country: shippingDetails.address?.country,
-                },
-              }
-            : undefined,
-        },
-        redirect: "if_required",
-      });
-
-      if (error) {
-        toast({
-          title: "Payment failed",
-          description: error.message || "We couldn't complete your payment.",
-          variant: "destructive",
-        });
-      } else {
-        // If no redirect required and succeeds inline
-        window.location.href = successUrl;
-      }
-    } catch (err: any) {
-      toast({
-        title: "Payment failed",
-        description: err?.message || "We couldn't complete your payment.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <AddressElement
-        options={{
-          mode: "shipping",
-          fields: {
-            phone: "always",
-          },
-          validation: {
-            phone: { required: "always" },
-          },
-          allowedCountries: ["US", "CA"],
-        }}
-        onChange={(event) => {
-          if (event.complete) {
-            onShippingChange(event.value);
-          }
-        }}
-      />
-      <PaymentElement />
-      <Button
-        className="w-full btn-luxury"
-        size="lg"
-        disabled={submitting || !stripe || !elements}
-        onClick={handleSubmit}
-      >
-        {submitting ? "Processing..." : "Pay now"}
-      </Button>
-    </div>
-  );
-};

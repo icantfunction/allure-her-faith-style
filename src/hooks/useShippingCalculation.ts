@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { calculateShipping, ShippingQuote } from "@/lib/api";
 
 export type ShippingAddressInput = {
@@ -23,18 +23,29 @@ export function useShippingCalculation() {
     quote: null,
     error: null,
   });
+  
+  // Track the latest request to prevent race conditions
+  const requestIdRef = useRef(0);
 
-  const fetchShipping = useCallback(async (address: ShippingAddressInput, quantity: number) => {
+  const fetchShipping = useCallback(async (
+    address: ShippingAddressInput, 
+    quantity: number,
+    orderId?: string
+  ) => {
     // Validate required fields
     if (!address.line1 || !address.city || !address.state || !address.postal_code) {
       setShippingState({ loading: false, quote: null, error: null });
       return null;
     }
 
+    // Increment request ID to track latest request
+    const currentRequestId = ++requestIdRef.current;
+    
     setShippingState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const quote = await calculateShipping({
+        orderId,
         quantity,
         address: {
           name: address.name,
@@ -46,16 +57,24 @@ export function useShippingCalculation() {
           country: address.country || "US",
         },
       });
-      setShippingState({ loading: false, quote, error: null });
+      
+      // Only update state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        setShippingState({ loading: false, quote, error: null });
+      }
       return quote;
     } catch (err: any) {
-      const errorMessage = err?.message || "Failed to calculate shipping";
-      setShippingState({ loading: false, quote: null, error: errorMessage });
+      // Only update state if this is still the latest request
+      if (currentRequestId === requestIdRef.current) {
+        const errorMessage = err?.message || "Failed to calculate shipping";
+        setShippingState({ loading: false, quote: null, error: errorMessage });
+      }
       return null;
     }
   }, []);
 
   const resetShipping = useCallback(() => {
+    requestIdRef.current++;
     setShippingState({ loading: false, quote: null, error: null });
   }, []);
 

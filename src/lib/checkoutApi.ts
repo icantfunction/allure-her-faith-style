@@ -99,7 +99,15 @@ export async function createCheckoutSession(input: {
   mode: "payment" | "subscription";
   siteId: string;
 
-  // send these now (backend can ignore until wired)
+  // Customer info for Stripe receipts & backend order records
+  customer?: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  };
+
+  // Shipping data (backend can ignore until wired)
   shippingCostCents?: number;
   shippingAddress?: Address;
   shippingQuote?: ShippingQuote;

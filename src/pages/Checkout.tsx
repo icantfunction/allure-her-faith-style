@@ -156,6 +156,12 @@ export default function Checkout() {
         lineItems,
         mode: "payment",
         siteId: SITE_ID,
+        customer: {
+          email,
+          firstName,
+          lastName,
+          phone: phone || undefined,
+        },
         shippingCostCents: shippingQuote.shippingAmountCents,
         shippingAddress,
         shippingQuote,

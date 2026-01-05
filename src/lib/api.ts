@@ -189,7 +189,8 @@ export const AdminAPI = {
 };
 
 // Shipping Calculator API
-export async function calculateShipping(params: {
+export type ShippingRequest = {
+  orderId?: string;
   quantity?: number;
   address: {
     name: string;
@@ -200,26 +201,73 @@ export async function calculateShipping(params: {
     postal_code: string;
     country?: string;
   };
-}): Promise<ShippingQuote> {
-  const res = await fetch(SHIPPING_API_URL, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify(params),
-  });
+};
 
-  const text = await res.text();
-  let data: any = null;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch {
-    data = { raw: text };
-  }
+// In-memory cache for shipping quotes (session-only)
+const shippingQuoteCache = new Map<string, { quote: ShippingQuote; timestamp: number }>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-  if (!res.ok) {
-    throw new Error(data?.error || data?.message || `Shipping API error ${res.status}`);
-  }
-
-  return data as ShippingQuote;
+function getShippingCacheKey(params: ShippingRequest): string {
+  const { address, quantity = 1 } = params;
+  return `${address.line1}|${address.city}|${address.state}|${address.postal_code}|${address.country || "US"}|${quantity}`;
 }
+
+export async function calculateShipping(params: ShippingRequest): Promise<ShippingQuote> {
+  const cacheKey = getShippingCacheKey(params);
+  
+  // Check cache first
+  const cached = shippingQuoteCache.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+    return cached.quote;
+  }
+
+  // AbortController with 8s timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const res = await fetch(SHIPPING_API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        orderId: params.orderId,
+        quantity: params.quantity ?? 1,
+        address: params.address,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    const text = await res.text();
+    let data: any = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = { raw: text };
+    }
+
+    if (!res.ok) {
+      throw new Error(data?.error || data?.message || `Shipping API error ${res.status}`);
+    }
+
+    const quote = data as ShippingQuote;
+    
+    // Cache the successful result
+    shippingQuoteCache.set(cacheKey, { quote, timestamp: Date.now() });
+    
+    return quote;
+  } catch (err: any) {
+    clearTimeout(timeoutId);
+    if (err.name === "AbortError") {
+      throw new Error("Shipping calculation timed out. Please try again.");
+    }
+    throw err;
+  }
+}
+
+// Convenience alias for external usage
+export const getShippingQuote = calculateShipping;

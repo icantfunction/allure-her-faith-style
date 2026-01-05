@@ -57,15 +57,29 @@ export default function Checkout() {
     }
   }, [debouncedAddress, debouncedCity, debouncedState, debouncedZip, totalQuantity, firstName, lastName, addressLine2, fetchShipping]);
 
+  // Show toast when shipping calculation fails
+  useEffect(() => {
+    if (shippingError) {
+      toast({
+        title: "Couldn't calculate shipping",
+        description: "Please check your address and try again.",
+        variant: "destructive",
+      });
+    }
+  }, [shippingError, toast]);
+
   const subtotal = totalPrice;
   const tax = subtotal * 0.08; // 8% tax
   
-  // Use real shipping quote if available, otherwise show estimate
-  const shippingCost = shippingQuote ? shippingQuote.shippingAmountCents / 100 : null;
-  const estimatedShipping = subtotal > 100 ? 0 : 10;
-  const displayShipping = shippingCost !== null ? shippingCost : estimatedShipping;
+  // Use real shipping quote - no fallback, must have valid quote to proceed
+  const shippingCost = shippingQuote ? shippingQuote.shippingAmountCents / 100 : 0;
+  const total = subtotal + tax + shippingCost;
   
-  const total = subtotal + tax + displayShipping;
+  // Address is complete when all required fields are filled
+  const addressComplete = address && city && state && zip;
+  
+  // Can only proceed to payment when we have a valid shipping quote
+  const canProceedToPayment = !!(shippingQuote && !shippingLoading && !shippingError);
 
   const handleCheckout = async () => {
     if (!import.meta.env.VITE_CHECKOUT_ENDPOINT) {
@@ -116,7 +130,7 @@ export default function Checkout() {
           postal_code: zip,
           country: "US",
         },
-        shippingCostCents: shippingQuote?.shippingAmountCents ?? Math.round(estimatedShipping * 100),
+        shippingCostCents: shippingQuote!.shippingAmountCents,
         carrier: shippingQuote?.carrier,
         service: shippingQuote?.service,
         deliveryDays: shippingQuote?.deliveryDays,
@@ -335,9 +349,11 @@ export default function Checkout() {
                         {shippingLoading ? (
                           "Calculating..."
                         ) : shippingQuote ? (
-                          shippingCost === 0 ? "FREE" : `$${shippingCost!.toFixed(2)}`
+                          shippingCost === 0 ? "FREE" : `$${shippingCost.toFixed(2)}`
+                        ) : addressComplete ? (
+                          <span className="text-muted-foreground">Enter address</span>
                         ) : (
-                          displayShipping === 0 ? "FREE" : `~$${displayShipping.toFixed(2)}`
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </span>
                     </div>
@@ -365,12 +381,6 @@ export default function Checkout() {
                       <span className="text-muted-foreground">Tax (8%)</span>
                       <span className="text-foreground">${tax.toFixed(2)}</span>
                     </div>
-                    
-                    {!shippingQuote && subtotal < 100 && (
-                      <p className="text-xs text-muted-foreground">
-                        Add ${(100 - subtotal).toFixed(2)} more for free shipping
-                      </p>
-                    )}
                   </div>
                   
                   <Separator />
@@ -383,11 +393,17 @@ export default function Checkout() {
                   <Button
                     className="w-full btn-luxury"
                     size="lg"
-                    disabled={submitting || shippingLoading}
+                    disabled={submitting || !canProceedToPayment}
                     onClick={handleCheckout}
                   >
-                    {submitting ? "Redirecting..." : "Proceed to Payment"}
+                    {submitting ? "Redirecting..." : shippingLoading ? "Calculating Shipping..." : "Proceed to Payment"}
                   </Button>
+                  
+                  {!canProceedToPayment && addressComplete && !shippingLoading && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      Complete your shipping address to see shipping options
+                    </p>
+                  )}
                   
                   <Button
                     variant="outline"

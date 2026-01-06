@@ -65,7 +65,7 @@ export default function StripeEmbeddedCheckout({
   const fetchClientSecret = useCallback(async () => {
     try {
       const origin = window.location.origin;
-      const returnUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+      const returnUrl = `${origin}/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
 
       const res = await fetch(CHECKOUT_ENDPOINT, {
         method: "POST",

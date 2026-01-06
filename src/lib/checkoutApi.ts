@@ -113,13 +113,23 @@ export async function createCheckoutSession(input: {
   shippingQuote?: ShippingQuote;
 }) {
   const { controller, cancel } = withTimeout(10_000);
+  
+  // Build URLs based on current origin
+  const origin = window.location.origin;
+  const successUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = `${origin}/checkout`;
+  
   try {
     const res = await fetch(CHECKOUT_ENDPOINT, {
       method: "POST",
       headers: { "content-type": "application/json" },
       // IMPORTANT: your admin API has AllowCredentials=true, so keep this:
       credentials: "include",
-      body: JSON.stringify(input),
+      body: JSON.stringify({
+        ...input,
+        successUrl,
+        cancelUrl,
+      }),
       signal: controller.signal,
     });
 

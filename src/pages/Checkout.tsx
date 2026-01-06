@@ -8,12 +8,12 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ShoppingBag, Trash2, Minus, Plus, Loader2, Truck, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { calculateShipping, createCheckoutSession, ShippingQuote } from "@/lib/checkoutApi";
+import { calculateShipping, ShippingQuote } from "@/lib/checkoutApi";
 import { SITE_ID } from "@/utils/siteId";
 import { useDebounce } from "@/hooks/useDebounce";
-import StripeEmbeddedCheckout from "@/components/checkout/StripeEmbeddedCheckout";
+import StripeEmbeddedCheckout, { CheckoutParams } from "@/components/checkout/StripeEmbeddedCheckout";
 
 export default function Checkout() {
   const { items, totalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
@@ -30,8 +30,8 @@ export default function Checkout() {
   const [zip, setZip] = useState("");
   const [submitting, setSubmitting] = useState(false);
   
-  // Embedded checkout state
-  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
+  // Embedded checkout state - store params instead of clientSecret
+  const [checkoutParams, setCheckoutParams] = useState<CheckoutParams | null>(null);
   const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
   
   // Shipping state
@@ -117,7 +117,7 @@ export default function Checkout() {
   // Can only proceed to payment when we have a valid shipping quote
   const canProceedToPayment = !!(shippingQuote && !shippingLoading && !shippingError);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
       toast({
         title: "Missing details",
@@ -136,64 +136,60 @@ export default function Checkout() {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      const lineItems = items.map((item) => ({
-        quantity: item.quantity,
-        price_data: {
-          currency: "usd",
-          product_data: { name: item.name },
-          unit_amount: Math.round(Number(item.price ?? 0) * 100),
-        },
-      }));
+    // Build checkout params for embedded checkout
+    const lineItems = items.map((item) => ({
+      quantity: item.quantity,
+      price_data: {
+        currency: "usd",
+        product_data: { name: item.name },
+        unit_amount: Math.round(Number(item.price ?? 0) * 100),
+      },
+    }));
 
-      const shippingAddress = {
-        name: `${firstName} ${lastName}`.trim(),
-        line1: address,
-        line2: addressLine2 || undefined,
-        city,
-        state,
-        postal_code: zip,
-        country: "US",
-      };
+    const shippingAddress = {
+      name: `${firstName} ${lastName}`.trim(),
+      line1: address,
+      line2: addressLine2 || undefined,
+      city,
+      state,
+      postal_code: zip,
+      country: "US",
+    };
 
-      const result = await createCheckoutSession({
-        lineItems,
-        mode: "payment",
-        siteId: SITE_ID,
-        uiMode: "embedded",
-        customer: {
-          email,
-          firstName,
-          lastName,
-          phone: phone || undefined,
-        },
-        shippingCostCents: shippingQuote.shippingAmountCents,
-        shippingAddress,
-        shippingQuote,
-      });
-
-      if (result.clientSecret) {
-        setCheckoutClientSecret(result.clientSecret);
-        setShowEmbeddedCheckout(true);
-      } else if (result.url) {
-        // Fallback to hosted checkout if backend doesn't support embedded
-        window.location.assign(result.url);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Checkout failed",
-        description: error.message || "We couldn't start checkout. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setSubmitting(false);
-    }
+    setCheckoutParams({
+      lineItems,
+      siteId: SITE_ID,
+      customer: {
+        email,
+        firstName,
+        lastName,
+        phone: phone || undefined,
+      },
+      shippingCostCents: shippingQuote.shippingAmountCents,
+      shippingAddress,
+      shippingQuote: {
+        carrier: shippingQuote.carrier,
+        service: shippingQuote.service,
+        deliveryDays: shippingQuote.deliveryDays,
+        totalWeight: shippingQuote.totalWeight,
+      },
+    });
+    setShowEmbeddedCheckout(true);
   };
 
   const handleBackToCart = () => {
     setShowEmbeddedCheckout(false);
-    setCheckoutClientSecret(null);
+    setCheckoutParams(null);
+  };
+
+  const handleCheckoutError = (error: Error) => {
+    toast({
+      title: "Checkout failed",
+      description: error.message || "We couldn't start checkout. Please try again.",
+      variant: "destructive",
+    });
+    setShowEmbeddedCheckout(false);
+    setCheckoutParams(null);
   };
 
   const handleCheckoutComplete = () => {
@@ -216,7 +212,7 @@ export default function Checkout() {
   }
 
   // Show embedded checkout when ready
-  if (showEmbeddedCheckout && checkoutClientSecret) {
+  if (showEmbeddedCheckout && checkoutParams) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -269,8 +265,9 @@ export default function Checkout() {
             <Card className="border-border shadow-luxury overflow-hidden">
               <CardContent className="p-0">
                 <StripeEmbeddedCheckout 
-                  clientSecret={checkoutClientSecret}
+                  checkoutParams={checkoutParams}
                   onComplete={handleCheckoutComplete}
+                  onError={handleCheckoutError}
                 />
               </CardContent>
             </Card>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   EmbeddedCheckoutProvider,
@@ -11,46 +11,114 @@ const stripePromise = loadStripe(
   import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || ""
 );
 
-interface StripeEmbeddedCheckoutProps {
-  clientSecret: string;
-  onComplete?: () => void;
+export interface CheckoutParams {
+  lineItems: Array<{
+    quantity: number;
+    price_data: {
+      currency: string;
+      product_data: { name: string };
+      unit_amount: number;
+    };
+  }>;
+  siteId: string;
+  customer?: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+  };
+  shippingCostCents?: number;
+  shippingAddress?: {
+    name: string;
+    line1: string;
+    line2?: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country?: string;
+  };
+  shippingQuote?: {
+    carrier: string;
+    service: string;
+    deliveryDays?: number;
+    totalWeight: number;
+  };
 }
 
+interface StripeEmbeddedCheckoutProps {
+  checkoutParams: CheckoutParams;
+  onComplete?: () => void;
+  onError?: (error: Error) => void;
+}
+
+const CHECKOUT_ENDPOINT =
+  import.meta.env.VITE_CHECKOUT_ENDPOINT ??
+  "https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod/admin/checkout/create-session";
+
 export default function StripeEmbeddedCheckout({
-  clientSecret,
+  checkoutParams,
   onComplete,
+  onError,
 }: StripeEmbeddedCheckoutProps) {
-  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Small delay to ensure smooth transition
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
+  const fetchClientSecret = useCallback(async () => {
+    try {
+      const origin = window.location.origin;
+      const returnUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
 
-  if (!clientSecret) {
+      const res = await fetch(CHECKOUT_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          ...checkoutParams,
+          mode: "payment",
+          uiMode: "embedded",
+          returnUrl,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Checkout failed (${res.status})`);
+      }
+
+      const clientSecret = data?.clientSecret || data?.client_secret;
+      if (!clientSecret) {
+        throw new Error("Checkout response missing clientSecret");
+      }
+
+      return clientSecret;
+    } catch (err: any) {
+      setError(err.message || "Failed to initialize checkout");
+      onError?.(err);
+      throw err;
+    }
+  }, [checkoutParams, onError]);
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-muted-foreground">Missing checkout session</p>
+      <div className="flex flex-col items-center justify-center py-12 gap-4">
+        <p className="text-destructive">{error}</p>
+        <button 
+          onClick={() => setError(null)}
+          className="text-primary underline hover:no-underline"
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="w-full">
-      {isLoading && (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      )}
-      <div className={isLoading ? "opacity-0" : "opacity-100 transition-opacity duration-300"}>
-        <EmbeddedCheckoutProvider
-          stripe={stripePromise}
-          options={{ clientSecret, onComplete }}
-        >
-          <EmbeddedCheckout />
-        </EmbeddedCheckoutProvider>
-      </div>
+    <div className="w-full min-h-[400px]">
+      <EmbeddedCheckoutProvider
+        stripe={stripePromise}
+        options={{ fetchClientSecret, onComplete }}
+      >
+        <EmbeddedCheckout />
+      </EmbeddedCheckoutProvider>
     </div>
   );
 }

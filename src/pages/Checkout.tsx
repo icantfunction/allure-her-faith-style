@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, ShoppingBag, Trash2, Minus, Plus, Loader2, Truck } from "lucide-react";
+import { ChevronRight, ShoppingBag, Trash2, Minus, Plus, Loader2, Truck, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { calculateShipping, createCheckoutSession, ShippingQuote } from "@/lib/checkoutApi";
 import { SITE_ID } from "@/utils/siteId";
 import { useDebounce } from "@/hooks/useDebounce";
+import StripeEmbeddedCheckout from "@/components/checkout/StripeEmbeddedCheckout";
 
 export default function Checkout() {
   const { items, totalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
@@ -28,6 +29,10 @@ export default function Checkout() {
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  
+  // Embedded checkout state
+  const [checkoutClientSecret, setCheckoutClientSecret] = useState<string | null>(null);
+  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
   
   // Shipping state
   const [shippingLoading, setShippingLoading] = useState(false);
@@ -152,10 +157,11 @@ export default function Checkout() {
         country: "US",
       };
 
-      const { url } = await createCheckoutSession({
+      const result = await createCheckoutSession({
         lineItems,
         mode: "payment",
         siteId: SITE_ID,
+        uiMode: "embedded",
         customer: {
           email,
           firstName,
@@ -167,7 +173,13 @@ export default function Checkout() {
         shippingQuote,
       });
 
-      window.location.assign(url);
+      if (result.clientSecret) {
+        setCheckoutClientSecret(result.clientSecret);
+        setShowEmbeddedCheckout(true);
+      } else if (result.url) {
+        // Fallback to hosted checkout if backend doesn't support embedded
+        window.location.assign(result.url);
+      }
     } catch (error: any) {
       toast({
         title: "Checkout failed",
@@ -179,6 +191,16 @@ export default function Checkout() {
     }
   };
 
+  const handleBackToCart = () => {
+    setShowEmbeddedCheckout(false);
+    setCheckoutClientSecret(null);
+  };
+
+  const handleCheckoutComplete = () => {
+    // Navigate to success page
+    navigate("/checkout/success");
+  };
+
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -188,6 +210,71 @@ export default function Checkout() {
           <Button onClick={() => navigate("/")} className="btn-luxury">
             Continue Shopping
           </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show embedded checkout when ready
+  if (showEmbeddedCheckout && checkoutClientSecret) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        
+        {/* Breadcrumb */}
+        <div className="bg-muted py-4 px-6">
+          <div className="max-w-7xl mx-auto flex items-center gap-2 text-sm text-muted-foreground">
+            <Link to="/" className="hover:text-primary transition-colors">
+              Home
+            </Link>
+            <ChevronRight className="h-4 w-4" />
+            <button 
+              onClick={handleBackToCart}
+              className="hover:text-primary transition-colors"
+            >
+              Checkout
+            </button>
+            <ChevronRight className="h-4 w-4" />
+            <span className="text-foreground">Payment</span>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6"
+          >
+            <Button 
+              variant="ghost" 
+              onClick={handleBackToCart}
+              className="mb-4 text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to cart
+            </Button>
+            <h1 className="text-4xl font-heading font-semibold text-foreground">
+              Complete Payment
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Secure checkout powered by Stripe
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <Card className="border-border shadow-luxury overflow-hidden">
+              <CardContent className="p-0">
+                <StripeEmbeddedCheckout 
+                  clientSecret={checkoutClientSecret}
+                  onComplete={handleCheckoutComplete}
+                />
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     );

@@ -94,10 +94,13 @@ export type StripeLineItem = {
   };
 };
 
+export type CheckoutMode = "hosted" | "embedded";
+
 export async function createCheckoutSession(input: {
   lineItems: StripeLineItem[];
   mode: "payment" | "subscription";
   siteId: string;
+  uiMode?: CheckoutMode;
 
   // Customer info for Stripe receipts & backend order records
   customer?: {
@@ -111,13 +114,16 @@ export async function createCheckoutSession(input: {
   shippingCostCents?: number;
   shippingAddress?: Address;
   shippingQuote?: ShippingQuote;
-}) {
+}): Promise<{ url?: string; clientSecret?: string; raw: any }> {
   const { controller, cancel } = withTimeout(10_000);
   
   // Build URLs based on current origin
   const origin = window.location.origin;
   const successUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${origin}/checkout`;
+  const returnUrl = `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`;
+  
+  const uiMode = input.uiMode || "embedded";
   
   try {
     const res = await fetch(CHECKOUT_ENDPOINT, {
@@ -127,8 +133,10 @@ export async function createCheckoutSession(input: {
       credentials: "include",
       body: JSON.stringify({
         ...input,
+        uiMode,
         successUrl,
         cancelUrl,
+        returnUrl,
       }),
       signal: controller.signal,
     });
@@ -136,9 +144,16 @@ export async function createCheckoutSession(input: {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data?.error || `Checkout failed (${res.status})`);
 
-    const url = data?.url;
-    if (!url) throw new Error("Checkout response missing url");
-    return { url, raw: data };
+    // For embedded mode, expect clientSecret; for hosted, expect url
+    if (uiMode === "embedded") {
+      const clientSecret = data?.clientSecret || data?.client_secret;
+      if (!clientSecret) throw new Error("Checkout response missing clientSecret");
+      return { clientSecret, raw: data };
+    } else {
+      const url = data?.url;
+      if (!url) throw new Error("Checkout response missing url");
+      return { url, raw: data };
+    }
   } catch (err: any) {
     if (err.name === "AbortError") {
       throw new Error("Checkout request timed out. Please try again.");

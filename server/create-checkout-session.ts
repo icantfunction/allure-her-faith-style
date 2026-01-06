@@ -1,9 +1,8 @@
 import Stripe from "stripe";
 
-// AWS Lambda-style handler (payment intent for embedded checkout).
+// AWS Lambda-style handler for Stripe Checkout Sessions (embedded or hosted).
 // Env:
-// STRIPE_SECRET_KEY, STRIPE_CONNECT_ACCOUNT_ID
-// STRIPE_SUCCESS_URL (optional), STRIPE_CANCEL_URL (optional)
+// STRIPE_SECRET_KEY, STRIPE_CONNECT_ACCOUNT_ID (optional)
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const connectAccount = process.env.STRIPE_CONNECT_ACCOUNT_ID;
@@ -13,71 +12,94 @@ const stripe = new Stripe(stripeSecret || "", {
 });
 
 export const handler = async (event: any) => {
-  if (!stripeSecret || !connectAccount) {
-    return { statusCode: 500, body: "Stripe environment not configured" };
+  if (!stripeSecret) {
+    return { statusCode: 500, body: JSON.stringify({ error: "Stripe environment not configured" }) };
   }
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method not allowed" };
+    return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
 
   try {
     const payload = JSON.parse(event.body || "{}");
-    const { items = [], customer = {}, successUrl, cancelUrl, currency = "usd" } = payload;
+    const { 
+      items = [], 
+      customer = {}, 
+      uiMode = "hosted",
+      successUrl,
+      cancelUrl,
+      returnUrl,
+      currency = "usd" 
+    } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
-      return { statusCode: 400, body: "No items provided" };
+      return { statusCode: 400, body: JSON.stringify({ error: "No items provided" }) };
     }
 
-    const subtotal = items.reduce((sum: number, item: any) => sum + (item.price || 0) * (item.quantity || 1), 0);
-    const shipping = subtotal > 100 ? 0 : 10;
-    const tax = subtotal * 0.08;
-    const total = Math.max(0, subtotal + shipping + tax);
-
-    const paymentIntent = await stripe.paymentIntents.create(
-      {
-        amount: Math.round(total * 100),
+    // Build line items for Stripe Checkout
+    const lineItems = items.map((item: any) => ({
+      price_data: {
         currency,
-        automatic_payment_methods: { enabled: true },
-        shipping: customer?.address
-          ? {
-              name: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
-              phone: customer.phone,
-              address: {
-                line1: customer.address,
-                city: customer.city,
-                state: customer.state,
-                postal_code: customer.zip,
-                country: customer.country || "US",
-              },
-            }
-          : undefined,
-        metadata: {
-          items: JSON.stringify(
-            items.map((i: any) => ({
-              id: i.productId,
-              name: i.name,
-              qty: i.quantity,
-              price: i.price,
-            }))
-          ),
-          shipping: shipping.toString(),
-          tax: tax.toString(),
-          subtotal: subtotal.toString(),
-          successUrl: successUrl || process.env.STRIPE_SUCCESS_URL || "",
-          cancelUrl: cancelUrl || process.env.STRIPE_CANCEL_URL || "",
+        product_data: {
+          name: item.name,
+          images: item.image ? [item.image] : undefined,
         },
+        unit_amount: Math.round((item.price || 0) * 100),
       },
-      { stripeAccount: connectAccount }
-    );
+      quantity: item.quantity || 1,
+    }));
+
+    // Determine origin for return/success URLs
+    const origin = event.headers?.origin || event.headers?.Origin || "https://shopallureher.com";
+    const isEmbedded = uiMode === "embedded";
+
+    // Build session params
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      mode: "payment",
+      line_items: lineItems,
+      customer_email: customer.email || undefined,
+      metadata: {
+        customerName: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
+        customerPhone: customer.phone || "",
+      },
+      shipping_address_collection: {
+        allowed_countries: ["US", "CA"],
+      },
+      ...(isEmbedded
+        ? {
+            ui_mode: "embedded",
+            return_url: returnUrl || `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+          }
+        : {
+            success_url: successUrl || `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: cancelUrl || `${origin}/checkout`,
+          }),
+    };
+
+    // Create session (with optional Connect account)
+    const session = connectAccount
+      ? await stripe.checkout.sessions.create(sessionParams, { stripeAccount: connectAccount })
+      : await stripe.checkout.sessions.create(sessionParams);
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ clientSecret: paymentIntent.client_secret }),
+      headers: { 
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+      body: JSON.stringify(
+        isEmbedded
+          ? { clientSecret: session.client_secret }
+          : { url: session.url }
+      ),
     };
   } catch (error: any) {
     console.error("Stripe error", error);
-    return { statusCode: 500, body: error?.message || "Failed to create payment intent" };
+    return { 
+      statusCode: 500, 
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ error: error?.message || "Failed to create checkout session" }) 
+    };
   }
 };
 

@@ -12,13 +12,11 @@ export async function subscribeToEmails(email: string): Promise<void> {
   });
 
   const text = await res.text();
-  let data: any = {};
-  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
-
+  
   if (!res.ok) {
     throw new Error(`Subscribe failed (${res.status}): ${text}`);
   }
 
-  // treat as success
+  // treat as success (any 2xx status)
   return;
 }

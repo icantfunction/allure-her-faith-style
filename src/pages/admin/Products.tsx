@@ -175,13 +175,13 @@ export default function Products() {
     if (!deleteProductId) return;
     
     try {
-      // Note: AdminAPI.deleteProduct needs to be added to lib/api.ts
-      // For now, we'll just show a message
-      toast({
-        title: "Coming soon",
-        description: "Delete functionality will be available soon",
-      });
+      await AdminAPI.deleteProduct(deleteProductId);
       setDeleteProductId(null);
+      await loadProducts();
+      toast({
+        title: "Success!",
+        description: "Product deleted successfully",
+      });
     } catch (e: any) {
       toast({
         title: "Error",

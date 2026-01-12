@@ -5,10 +5,9 @@ import { animate, stagger } from "animejs";
 import { PublicAPI } from "@/lib/api";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Loader2, ShoppingBag, Sparkles, Wand2 } from "lucide-react";
+import { ArrowUpRight, Loader2, ShoppingBag, Sparkles } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 type Product = {
   productId: string;
@@ -19,26 +18,12 @@ type Product = {
   visible?: boolean;
 };
 
-type FilterId = "all" | "sets" | "dresses" | "essentials";
 
-type FilterOption = {
-  id: FilterId;
-  label: string;
-  description: string;
-};
-
-const filterOptions: FilterOption[] = [
-  { id: "all", label: "All looks", description: "Every piece, one view" },
-  { id: "sets", label: "Statement sets", description: "Coordinated, ready to wear" },
-  { id: "dresses", label: "Sunday best", description: "Dresses made for worship" },
-  { id: "essentials", label: "Everyday ease", description: "Soft layers + staples" },
-];
 
 const Shop = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [displayedProducts, setDisplayedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeFilter, setActiveFilter] = useState<FilterId>("all");
   const { shop, loading: configLoading } = useSiteConfig();
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -57,49 +42,11 @@ const Shop = () => {
     []
   );
 
-  const filterRowAnimation = useMemo(
-    () => ({
-      targets: ".shop-filter-piece",
-      opacity: [0, 1],
-      translateY: [14, 0],
-      delay: stagger(70),
-      duration: 320,
-      easing: "easeOutCubic",
-    }),
-    []
-  );
-
   const heroRef = useAnimeOnScroll(heroAnimation);
-  const filterRowRef = useAnimeOnScroll(filterRowAnimation);
 
   // Use shop config from context with fallback defaults
   const showViewAllButton = shop.showViewAllButton ?? true;
   const showShopSection = shop.showShopSection ?? true;
-
-  const filterProducts = useCallback((list: Product[], filterId: FilterId) => {
-    const visible = list.filter((p) => p.visible !== false);
-    if (filterId === "all") return visible;
-
-    const matchesKeyword = (product: Product, keywords: string[]) => {
-      const haystack = `${product.name} ${product.description ?? ""}`.toLowerCase();
-      return keywords.some((word) => haystack.includes(word));
-    };
-
-    const matches = visible.filter((product) => {
-      switch (filterId) {
-        case "sets":
-          return matchesKeyword(product, ["set", "skirt", "pair", "co-ord", "two piece"]);
-        case "dresses":
-          return matchesKeyword(product, ["dress", "gown", "sunday", "wrap", "maxi"]);
-        case "essentials":
-          return product.price < 130 || matchesKeyword(product, ["top", "pant", "trouser", "layer", "everyday"]);
-        default:
-          return true;
-      }
-    });
-
-    return matches.length ? matches : visible;
-  }, []);
 
   const playEntrance = useCallback(() => {
     const cards = gridRef.current?.querySelectorAll(".product-card");
@@ -122,7 +69,7 @@ const Shop = () => {
       .then((data) => {
         const visible = data.filter((p: Product) => p.visible !== false);
         setProducts(visible);
-        const curated = filterProducts(visible, "all").slice(0, 6);
+        const curated = visible.slice(0, 6);
         setDisplayedProducts(curated);
         requestAnimationFrame(() => requestAnimationFrame(playEntrance));
       })
@@ -133,15 +80,7 @@ const Shop = () => {
         setDisplayedProducts([]);
       })
       .finally(() => setLoading(false));
-  }, [filterProducts, playEntrance]);
-
-  const handleFilterChange = (filterId: FilterId) => {
-    if (filterId === activeFilter) return;
-    const nextList = filterProducts(products, filterId).slice(0, 6);
-    setActiveFilter(filterId);
-    setDisplayedProducts(nextList);
-    requestAnimationFrame(() => requestAnimationFrame(playEntrance));
-  };
+  }, [playEntrance]);
 
   const handleProductHover = (e: React.MouseEvent<HTMLDivElement>) => {
     animate(e.currentTarget, {
@@ -288,69 +227,9 @@ const Shop = () => {
               explore the details.
             </p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3 shop-hero-piece">
-            {[
-              { icon: <Wand2 className="h-4 w-4" />, title: "Mix + match ready", body: "Pieces pair across the line." },
-              { icon: <ShoppingBag className="h-4 w-4" />, title: "Modesty, refined", body: "Longer hems, luxe fabrics." },
-              { icon: <Sparkles className="h-4 w-4" />, title: "Ships with care", body: "Pressed, wrapped, tracked." },
-            ].map((item) => (
-              <div key={item.title} className="flex items-start gap-3 rounded-xl bg-white/70 backdrop-blur-sm p-4 shadow-soft">
-                <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-                  {item.icon}
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{item.title}</p>
-                  <p className="text-sm text-muted-foreground">{item.body}</p>
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
 
-        <div ref={filterRowRef} className="mt-12 flex flex-col gap-6">
-          <div className="flex flex-wrap items-center gap-3">
-            {filterOptions.map((filter) => (
-              <Button
-                key={filter.id}
-                variant={activeFilter === filter.id ? "default" : "outline"}
-                size="sm"
-                className={cn(
-                  "shop-filter-piece rounded-full px-5 py-2.5 transition-transform",
-                  activeFilter === filter.id
-                    ? "bg-primary text-primary-foreground shadow-soft"
-                    : "bg-white/70 backdrop-blur-sm border border-border"
-                )}
-                onClick={() => handleFilterChange(filter.id)}
-              >
-                <span className="text-sm font-medium">{filter.label}</span>
-              </Button>
-            ))}
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shop-filter-piece">
-            <p className="text-sm text-muted-foreground">
-              Showing {displayedProducts.length} {displayedProducts.length === 1 ? "look" : "looks"} ·{" "}
-              {filterOptions.find((f) => f.id === activeFilter)?.description}
-            </p>
-            <div className="flex gap-3">
-              <Button variant="ghost" size="sm" className="text-primary gap-2" onClick={() => handleFilterChange("all")}>
-                Reset
-              </Button>
-              {showViewAllButton && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => navigate("/products")}
-                >
-                  View full collection
-                  <ArrowUpRight className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div ref={gridRef} className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3" ref={gridRef}>
           {displayedProducts.map((product) => (
             <div
               key={product.productId}

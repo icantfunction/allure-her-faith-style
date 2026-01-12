@@ -54,9 +54,11 @@ The application uses AWS API Gateway with multiple endpoints. It's important to 
 - `POST /calculate-shipping` - Calculate shipping costs for orders
 
 ### 3. API Gateway 90rzuoiw2c (Partial Admin Support)
-**Base URL:** Not currently configured in this repository
+**Base URL:** `https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com` (example - not currently used in this repository)
 
 **Status:** ⚠️ **Limited Support** - This API Gateway endpoint has INCOMPLETE admin functionality.
+
+> **Note:** This endpoint is documented for reference purposes. The current frontend configuration uses the CloudFront API which provides full functionality. If you have access to this API Gateway endpoint and need to use it, be aware of the limitations below.
 
 #### ✅ Supported Routes:
 - `GET /admin/orders` - List orders
@@ -95,13 +97,16 @@ This configuration provides full functionality for:
 **Solution:** 
 1. Check your `VITE_API_BASE` environment variable
 2. Ensure it points to the CloudFront API: `https://d1pqkh0r4pj29.cloudfront.net`
-3. Alternatively, point it to an API Gateway that has the delete route implemented (e.g., `1f7dvduzvg` if it has been configured)
+3. This is the only API Gateway endpoint that supports the full set of admin product routes
 
 ### Issue: "PUT /admin/products/{id} returns 404 or 403"
 
 **Cause:** Same as above - the API endpoint doesn't support product updates.
 
-**Solution:** Same as above - use the CloudFront API or a fully-configured API Gateway.
+**Solution:** 
+1. Check your `VITE_API_BASE` environment variable
+2. Ensure it points to the CloudFront API: `https://d1pqkh0r4pj29.cloudfront.net`
+3. This is the only API Gateway endpoint that supports the full set of admin product routes
 
 ### Orders Work But Products Don't
 

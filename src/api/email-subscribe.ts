@@ -11,8 +11,14 @@ export async function subscribeToEmails(email: string): Promise<void> {
     credentials: 'include',
   });
 
+  const text = await res.text();
+  let data: any = {};
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `Failed to subscribe (status ${res.status})`);
+    throw new Error(`Subscribe failed (${res.status}): ${text}`);
   }
+
+  // treat as success
+  return;
 }

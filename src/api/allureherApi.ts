@@ -119,10 +119,15 @@ export async function subscribeEmail(email: string, source = "footer"): Promise<
     }),
   });
 
-  if (res.status !== 204) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`Subscribe failed (${res.status}): ${msg}`);
+  const text = await res.text();
+  let data: any = {};
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
+  if (!res.ok) {
+    throw new Error(`Subscribe failed (${res.status}): ${text}`);
   }
+
+  // treat as success
 }
 
 // POST /public/email/unsubscribe  (204 on success)
@@ -141,10 +146,15 @@ export async function unsubscribeEmail(email: string): Promise<void> {
     }),
   });
 
-  if (res.status !== 204) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`Unsubscribe failed (${res.status}): ${msg}`);
+  const text = await res.text();
+  let data: any = {};
+  try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
+
+  if (!res.ok) {
+    throw new Error(`Unsubscribe failed (${res.status}): ${text}`);
   }
+
+  // treat as success
 }
 
 // GET /public/products?siteId=...

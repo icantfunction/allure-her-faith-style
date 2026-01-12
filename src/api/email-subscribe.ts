@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod';
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://d1pqkh0r4pj29.cloudfront.net';
 
 export async function subscribeToEmails(email: string): Promise<void> {
   const res = await fetch(`${API_BASE}/public/email/subscribe`, {

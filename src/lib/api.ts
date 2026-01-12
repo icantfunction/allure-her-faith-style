@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? "https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "https://d1pqkh0r4pj29.cloudfront.net";
 const SITE_ID = import.meta.env.VITE_SITE_ID ?? "my-site";
 
 // Shipping API endpoint

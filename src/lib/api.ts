@@ -28,11 +28,23 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     credentials: "omit",
     mode: "cors",
   });
+
+  const text = await res.text();
+
   if (!res.ok) {
-    const msg = await res.text().catch(() => "");
-    throw new Error(`${res.status} ${res.statusText} ${msg}`);
+    throw new Error(`${res.status} ${res.statusText} ${text}`);
   }
-  return res.status === 204 ? (undefined as T) : res.json();
+
+  // treat as success (any 2xx status)
+  if (res.status === 204 || !text) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return { raw: text } as T;
+  }
 }
 
 // Types

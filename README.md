@@ -53,3 +53,9 @@ This project is built with:
 - Tailwind CSS
 
 - AWS Cloud Services
+
+## API Endpoints
+
+This application uses multiple AWS API Gateway endpoints. For detailed information about which endpoints support which operations, see [API_ENDPOINTS.md](./API_ENDPOINTS.md).
+
+**Important:** The application is configured to use the CloudFront API endpoint which supports all admin operations including product creation, updates, and deletion. Other API Gateway endpoints may have limited functionality.

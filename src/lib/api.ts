@@ -1,7 +1,8 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? "https://d1pqkh0r4pj29.cloudfront.net";
 const SITE_ID = import.meta.env.VITE_SITE_ID ?? "my-site";
 
-// Shipping API endpoint
+// Shipping API endpoint - Dedicated API Gateway for shipping calculations
+// See API_ENDPOINTS.md for detailed endpoint documentation
 const SHIPPING_API_URL = import.meta.env.VITE_SHIPPING_API_URL ?? 
   "https://1f7dvduzvg.execute-api.us-east-1.amazonaws.com/calculate-shipping";
 
@@ -141,12 +142,18 @@ export const AdminAPI = {
     }),
   
   updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string; visible: boolean }>) =>
+    // Note: PUT route requires the CloudFront API or a fully-configured API Gateway
+    // Some API Gateway endpoints (e.g., 90rzuoiw2c) do not support this route
+    // See API_ENDPOINTS.md for more details
     apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
       method: "PUT",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
     }),
   
   deleteProduct: (id: string) =>
+    // Note: DELETE route requires the CloudFront API or a fully-configured API Gateway
+    // Some API Gateway endpoints (e.g., 90rzuoiw2c) do not support this route
+    // See API_ENDPOINTS.md for more details
     apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
       method: "DELETE",
       body: JSON.stringify({ siteId: SITE_ID }),

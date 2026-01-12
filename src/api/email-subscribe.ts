@@ -11,8 +11,12 @@ export async function subscribeToEmails(email: string): Promise<void> {
     credentials: 'include',
   });
 
+  const text = await res.text();
+  
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `Failed to subscribe (status ${res.status})`);
+    throw new Error(`Subscribe failed (${res.status}): ${text}`);
   }
+
+  // treat as success (any 2xx status)
+  return;
 }

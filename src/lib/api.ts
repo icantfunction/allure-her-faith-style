@@ -43,7 +43,8 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   try {
     return JSON.parse(text) as T;
   } catch {
-    return { raw: text } as T;
+    // If JSON parsing fails, return undefined for non-JSON responses
+    return undefined as T;
   }
 }
 

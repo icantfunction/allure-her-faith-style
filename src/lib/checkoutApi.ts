@@ -28,7 +28,7 @@ const SHIPPING_API_URL =
 
 const CHECKOUT_ENDPOINT =
   import.meta.env.VITE_CHECKOUT_ENDPOINT ??
-  "https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod/admin/checkout/create-session";
+  "https://d1pqkh0r4pj29.cloudfront.net/admin/checkout/create-session";
 
 function withTimeout(ms: number) {
   const controller = new AbortController();

@@ -1,5 +1,5 @@
-const API_BASE_URL = "https://90rzuoiw2c.execute-api.us-east-1.amazonaws.com/prod";
-const SITE_ID = "my-site";
+const API_BASE_URL = import.meta.env.VITE_API_BASE || "https://d1pqkh0r4pj29.cloudfront.net";
+const SITE_ID = import.meta.env.VITE_SITE_ID || "my-site";
 
 export type Subscriber = {
   email: string;

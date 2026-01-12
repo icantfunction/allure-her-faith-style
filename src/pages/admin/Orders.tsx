@@ -197,7 +197,7 @@ export default function Orders() {
             <CardDescription>Smart workflows. Fewer clicks. More shipped orders.</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">Built for Sarah</Badge>
+            <Badge variant="secondary">Built for Dina</Badge>
             <Badge variant="outline">Batch faster than generic builders</Badge>
           </div>
         </CardHeader>
@@ -273,7 +273,7 @@ export default function Orders() {
             </div>
           ) : orders.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              All caught up, Sarah. While you wait: offer a thank-you coupon, pre-print return labels, star VIP customers.
+              All caught up, Dina. While you wait: offer a thank-you coupon, pre-print return labels, star VIP customers.
             </p>
           ) : (
             <>

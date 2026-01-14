@@ -86,3 +86,25 @@ export const createCheckoutSession = async (payload: CreateCheckoutPayload) => {
 
   return (await res.json()) as CheckoutSessionResponse;
 };
+
+export const confirmCheckoutSession = async (sessionId: string) => {
+  if (!sessionId) {
+    throw new Error("Missing sessionId");
+  }
+
+  const apiBase = import.meta.env.VITE_API_BASE || "https://d1pqkh0r4pj29.cloudfront.net";
+  const res = await fetch(`${apiBase}/public/checkout/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "omit",
+    mode: "cors",
+    body: JSON.stringify({ sessionId }),
+  });
+
+  if (!res.ok) {
+    const message = await res.text().catch(() => "Failed to confirm checkout session");
+    throw new Error(message || "Failed to confirm checkout session");
+  }
+
+  return res.json().catch(() => ({}));
+};

@@ -24,11 +24,11 @@ export type ShippingQuote = {
 
 const SHIPPING_API_URL =
   import.meta.env.VITE_SHIPPING_API_URL ??
-  "https://1f7dvduzvg.execute-api.us-east-1.amazonaws.com/calculate-shipping";
+  `${(import.meta.env.VITE_API_BASE ?? "https://d1pqkh0r4pj29.cloudfront.net").replace(/\/$/, "")}/calculate-shipping`;
 
 const CHECKOUT_ENDPOINT =
   import.meta.env.VITE_CHECKOUT_ENDPOINT ??
-  "https://d1pqkh0r4pj29.cloudfront.net/admin/checkout/create-session";
+  `${(import.meta.env.VITE_API_BASE ?? "https://d1pqkh0r4pj29.cloudfront.net").replace(/\/$/, "")}/admin/checkout/create-session`;
 
 function withTimeout(ms: number) {
   const controller = new AbortController();
@@ -129,8 +129,7 @@ export async function createCheckoutSession(input: {
     const res = await fetch(CHECKOUT_ENDPOINT, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      // IMPORTANT: your admin API has AllowCredentials=true, so keep this:
-      credentials: "include",
+      credentials: "omit",
       body: JSON.stringify({
         ...input,
         uiMode,

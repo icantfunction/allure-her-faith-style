@@ -2,8 +2,8 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "https://d1pqkh0r4pj29.cloudfr
 const SITE_ID = import.meta.env.VITE_SITE_ID ?? "my-site";
 
 // Shipping API endpoint
-const SHIPPING_API_URL = import.meta.env.VITE_SHIPPING_API_URL ?? 
-  "https://1f7dvduzvg.execute-api.us-east-1.amazonaws.com/calculate-shipping";
+const SHIPPING_API_URL = import.meta.env.VITE_SHIPPING_API_URL ??
+  `${API_BASE.replace(/\/$/, "")}/calculate-shipping`;
 
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -198,6 +198,22 @@ export const AdminAPI = {
     apiFetch<void>(`/admin/orders/${encodeURIComponent(orderId)}/status`, {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, status }),
+    }),
+
+  createShippingLabel: (payload: { orderId: string; address: ShippingAddress; quantity?: number }) =>
+    apiFetch<{
+      labelUrl?: string;
+      trackingId?: string;
+      trackingCode?: string;
+      carrier?: string;
+      service?: string;
+    }>(`/create-shipping-label`, {
+      method: "POST",
+      body: JSON.stringify({
+        orderId: payload.orderId,
+        address: payload.address,
+        quantity: payload.quantity,
+      }),
     }),
 };
 

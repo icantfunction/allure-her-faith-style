@@ -8,7 +8,8 @@ export async function subscribeToEmails(email: string): Promise<void> {
       email,
       siteId: 'my-site',
     }),
-    credentials: 'include',
+    credentials: "omit",
+    mode: "cors",
   });
 
   const text = await res.text();

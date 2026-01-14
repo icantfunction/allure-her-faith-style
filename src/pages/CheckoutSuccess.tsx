@@ -5,6 +5,7 @@ import { CheckCircle2, Package, Mail } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
+import { confirmCheckoutSession } from "@/api/checkout";
 
 const CheckoutSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -15,6 +16,13 @@ const CheckoutSuccess = () => {
   useEffect(() => {
     clearCart();
   }, [clearCart]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    confirmCheckoutSession(sessionId).catch((error) => {
+      console.warn("Checkout confirmation failed:", error);
+    });
+  }, [sessionId]);
 
   return (
     <div className="min-h-screen bg-background">

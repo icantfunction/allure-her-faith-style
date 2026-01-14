@@ -14,6 +14,10 @@ export type CampaignStats = {
   failedCount: number;
 };
 
+export type CampaignSegment =
+  | { type: "all" }
+  | { type: "source"; source: string };
+
 export type Campaign = {
   siteId: string;
   campaignId: string;
@@ -25,6 +29,7 @@ export type Campaign = {
   createdAt: string;
   updatedAt: string;
   stats?: CampaignStats;
+  segment?: CampaignSegment;
 };
 
 export type CreateCampaignResponse = {
@@ -165,6 +170,7 @@ export async function adminCreateCampaign(input: {
   subject: string;
   bodyHtml: string;
   sendAtUtc?: string;
+  segment?: CampaignSegment;
 }) {
   const token = await getAuthToken();
   if (!token) throw new Error("Not authenticated");
@@ -175,6 +181,9 @@ export async function adminCreateCampaign(input: {
     subject: input.subject,
     bodyHtml: input.bodyHtml,
   };
+  if (input.segment) {
+    body.segment = input.segment;
+  }
   
   if (input.sendAtUtc) {
     body.sendAt = input.sendAtUtc;

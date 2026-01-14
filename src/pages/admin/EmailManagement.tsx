@@ -152,6 +152,14 @@ export default function EmailManagement() {
   const filteredSubscribers = subscribers.filter((s) =>
     s.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const sourceOptions = React.useMemo(() => {
+    const set = new Set(
+      subscribers
+        .map((subscriber) => subscriber.source)
+        .filter((source): source is string => Boolean(source))
+    );
+    return Array.from(set).sort();
+  }, [subscribers]);
 
   const handleCampaignSuccess = () => {
     setComposerOpen(false);
@@ -503,7 +511,12 @@ export default function EmailManagement() {
         </Tabs>
       </motion.div>
 
-      <CampaignComposer open={composerOpen} onOpenChange={setComposerOpen} onSuccess={handleCampaignSuccess} />
+      <CampaignComposer
+        open={composerOpen}
+        onOpenChange={setComposerOpen}
+        onSuccess={handleCampaignSuccess}
+        sources={sourceOptions}
+      />
 
       <AlertDialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog({ ...confirmDialog, open })}>
         <AlertDialogContent>

@@ -70,7 +70,7 @@ export default function StripeEmbeddedCheckout({
       const res = await fetch(CHECKOUT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        credentials: "omit",
         body: JSON.stringify({
           ...checkoutParams,
           mode: "payment",

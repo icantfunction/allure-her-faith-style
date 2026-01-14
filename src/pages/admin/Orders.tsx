@@ -108,9 +108,6 @@ export default function Orders() {
   const [hasLabel, setHasLabel] = useState<"" | "true" | "false">("");
   const [search, setSearch] = useState("");
   const [labelDialog, setLabelDialog] = useState(false);
-  const [storeName, setStoreName] = useState("Allure Her");
-  const [carrier, setCarrier] = useState("Standard");
-  const [formatOption, setFormatOption] = useState("4x6");
   const [busy, setBusy] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -156,19 +153,60 @@ export default function Orders() {
     }
     setBusy(true);
     try {
-      const res = await AdminAPI.bulkPrintLabels({
-        orderIds,
-        storeName,
-        carrier,
-        format: formatOption,
-      });
-      toast({
-        title: "Labels ready",
-        description: res.pdfUrl ? "Open the generated PDF from the link below." : "Labels requested.",
-      });
-      if (res.pdfUrl) {
-        window.open(res.pdfUrl, "_blank");
+      const toPrint = orders.filter((order) => orderIds.includes(order.orderId));
+      const missingAddress = toPrint.filter(
+        (order) =>
+          !order.shippingAddress?.line1 ||
+          !order.shippingAddress?.city ||
+          !order.shippingAddress?.state ||
+          !order.shippingAddress?.postal_code
+      );
+
+      if (missingAddress.length) {
+        toast({
+          title: "Missing address",
+          description: "Add a shipping address before creating labels.",
+          variant: "destructive",
+        });
+        return;
       }
+
+      const results = await Promise.allSettled(
+        toPrint.map((order) => {
+          const quantity =
+            order.items?.reduce((sum, item) => sum + item.quantity, 0) ?? order.totalQuantity ?? 1;
+          return AdminAPI.createShippingLabel({
+            orderId: order.orderId,
+            address: order.shippingAddress as any,
+            quantity,
+          });
+        })
+      );
+
+      const labelUrls: string[] = [];
+      let failures = 0;
+      results.forEach((result) => {
+        if (result.status === "fulfilled") {
+          const labelUrl = result.value.labelUrl;
+          if (labelUrl) {
+            labelUrls.push(labelUrl);
+          }
+        } else {
+          failures += 1;
+        }
+      });
+
+      if (labelUrls.length) {
+        labelUrls.forEach((url) => window.open(url, "_blank"));
+      }
+
+      toast({
+        title: failures ? "Some labels failed" : "Labels ready",
+        description: failures
+          ? `${labelUrls.length} labels created, ${failures} failed.`
+          : "Shipping labels opened in new tabs.",
+      });
+
       setLabelDialog(false);
       load();
     } catch (err: any) {
@@ -307,12 +345,6 @@ export default function Orders() {
         open={labelDialog}
         onOpenChange={setLabelDialog}
         selectedCount={selectedIds.length}
-        storeName={storeName}
-        setStoreName={setStoreName}
-        carrier={carrier}
-        setCarrier={setCarrier}
-        formatOption={formatOption}
-        setFormatOption={setFormatOption}
         onPrint={() => handlePrint(selectedIds)}
         busy={busy}
       />
@@ -329,24 +361,12 @@ const LabelDialog = ({
   open,
   onOpenChange,
   selectedCount,
-  storeName,
-  setStoreName,
-  carrier,
-  setCarrier,
-  formatOption,
-  setFormatOption,
   onPrint,
   busy,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   selectedCount: number;
-  storeName: string;
-  setStoreName: (v: string) => void;
-  carrier: string;
-  setCarrier: (v: string) => void;
-  formatOption: string;
-  setFormatOption: (v: string) => void;
   onPrint: () => void;
   busy: boolean;
 }) => (
@@ -354,34 +374,14 @@ const LabelDialog = ({
     <DialogContent className="max-w-lg">
       <DialogHeader>
         <DialogTitle>Print {selectedCount} labels</DialogTitle>
-        <DialogDescription>Confirm carrier, format, and store name.</DialogDescription>
+        <DialogDescription>We'll generate live EasyPost labels for each order.</DialogDescription>
       </DialogHeader>
-      <div className="space-y-3">
-        <div className="space-y-1">
-          <label className="text-sm text-muted-foreground">Store name</label>
-          <Input value={storeName} onChange={(e) => setStoreName(e.target.value)} />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-muted-foreground">Carrier</label>
-          <select className="rounded-md border px-3 py-2 text-sm w-full" value={carrier} onChange={(e) => setCarrier(e.target.value)}>
-            <option value="Standard">Standard</option>
-            <option value="Express">Express</option>
-          </select>
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm text-muted-foreground">Format</label>
-          <select className="rounded-md border px-3 py-2 text-sm w-full" value={formatOption} onChange={(e) => setFormatOption(e.target.value)}>
-            <option value="4x6">4x6 thermal</option>
-            <option value="A4">A4 / Letter PDF</option>
-          </select>
-        </div>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={onPrint} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
-            Print
-          </Button>
-        </div>
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+        <Button onClick={onPrint} disabled={busy}>
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Printer className="h-4 w-4 mr-2" />}
+          Print
+        </Button>
       </div>
     </DialogContent>
   </Dialog>

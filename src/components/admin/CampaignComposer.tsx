@@ -16,6 +16,7 @@ interface CampaignComposerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  sources?: string[];
 }
 
 // Sanitize HTML for safe preview rendering
@@ -46,7 +47,7 @@ const sanitizeHtmlForPreview = (html: string): string => {
   return sanitized;
 };
 
-export default function CampaignComposer({ open, onOpenChange, onSuccess }: CampaignComposerProps) {
+export default function CampaignComposer({ open, onOpenChange, onSuccess, sources = [] }: CampaignComposerProps) {
   const { toast } = useToast();
   const [name, setName] = React.useState("");
   const [subject, setSubject] = React.useState("");
@@ -56,6 +57,8 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
   const [sending, setSending] = React.useState(false);
   const [result, setResult] = React.useState<CreateCampaignResponse | null>(null);
   const [previewMode, setPreviewMode] = React.useState<"desktop" | "mobile">("desktop");
+  const [segmentType, setSegmentType] = React.useState<"all" | "source">("all");
+  const [segmentSource, setSegmentSource] = React.useState("");
 
   const handleReset = () => {
     setName("");
@@ -64,6 +67,8 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
     setMode("immediate");
     setSendAtLocal("");
     setResult(null);
+    setSegmentType("all");
+    setSegmentSource("");
   };
 
   const handleClose = (isOpen: boolean) => {
@@ -104,6 +109,15 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
       }
     }
 
+    if (segmentType === "source" && !segmentSource) {
+      toast({
+        title: "Validation Error",
+        description: "Select a source for this campaign segment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setSending(true);
       const payload: any = {
@@ -114,6 +128,9 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
 
       if (mode === "scheduled") {
         payload.sendAtUtc = localToUtcIso(sendAtLocal);
+      }
+      if (segmentType === "source") {
+        payload.segment = { type: "source", source: segmentSource };
       }
 
       const response = await adminCreateCampaign(payload);
@@ -214,15 +231,51 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess }: Camp
               </p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subject">Subject Line</Label>
-              <Input
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject Line</Label>
+            <Input
                 id="subject"
                 placeholder="e.g., New Collection Just Dropped ✨"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 disabled={sending}
               />
+            </div>
+
+            <div className="space-y-3">
+              <Label>Audience Segment</Label>
+              <RadioGroup value={segmentType} onValueChange={(v) => setSegmentType(v as "all" | "source")}>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="all" id="segment-all" />
+                  <Label htmlFor="segment-all">All subscribers</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="source" id="segment-source" />
+                  <Label htmlFor="segment-source">By signup source</Label>
+                </div>
+              </RadioGroup>
+              {segmentType === "source" && (
+                <div className="space-y-2">
+                  <Label htmlFor="segment-source-select">Source</Label>
+                  <select
+                    id="segment-source-select"
+                    className="w-full rounded-md border px-3 py-2 text-sm"
+                    value={segmentSource}
+                    onChange={(e) => setSegmentSource(e.target.value)}
+                    disabled={sending || sources.length === 0}
+                  >
+                    <option value="">Select a source</option>
+                    {sources.map((source) => (
+                      <option key={source} value={source}>
+                        {source}
+                      </option>
+                    ))}
+                  </select>
+                  {sources.length === 0 && (
+                    <p className="text-xs text-muted-foreground">No sources found yet. Collect subscribers first.</p>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

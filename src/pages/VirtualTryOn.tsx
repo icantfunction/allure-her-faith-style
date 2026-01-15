@@ -41,7 +41,6 @@ export default function VirtualTryOn() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sampleCount, setSampleCount] = useState(1);
 
   useEffect(() => {
     let active = true;
@@ -112,7 +111,6 @@ export default function VirtualTryOn() {
         body: JSON.stringify({
           personBase64: personImage.base64,
           productImageUrl,
-          sampleCount,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -203,20 +201,7 @@ export default function VirtualTryOn() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="sampleCount">Sample Count</Label>
-                <Input
-                  id="sampleCount"
-                  type="number"
-                  min={1}
-                  max={4}
-                  value={sampleCount}
-                  onChange={(e) => setSampleCount(Number(e.target.value))}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Higher values create more variations but take longer.
-                </p>
-              </div>
+
 
               {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -121,7 +121,7 @@ async function getAccessToken() {
   return cachedToken;
 }
 
-async function callVertexTryOn({ personBase64, productBase64, sampleCount, baseSteps }) {
+async function callVertexTryOn({ personBase64, productBase64 }) {
   if (!VERTEX_PROJECT_ID) {
     throw new Error("Missing VERTEX_PROJECT_ID");
   }
@@ -146,8 +146,8 @@ async function callVertexTryOn({ personBase64, productBase64, sampleCount, baseS
       },
     ],
     parameters: {
-      sampleCount: sampleCount ?? 1,
-      baseSteps: baseSteps ?? 30,
+      sampleCount: 1,
+      baseSteps: 30,
     },
   };
 
@@ -260,8 +260,6 @@ const server = http.createServer(async (req, res) => {
       const result = await callVertexTryOn({
         personBase64,
         productBase64,
-        sampleCount: payload.sampleCount,
-        baseSteps: payload.baseSteps,
       });
       jsonResponse(res, 200, result);
     } catch (err) {

@@ -28,6 +28,7 @@ export interface CheckoutParams {
     phone?: string;
   };
   shippingCostCents?: number;
+  shippingCode?: string;
   shippingAddress?: {
     name: string;
     line1: string;

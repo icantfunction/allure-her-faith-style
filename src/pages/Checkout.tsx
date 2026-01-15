@@ -16,6 +16,8 @@ import { useDebounce } from "@/hooks/useDebounce";
 import StripeEmbeddedCheckout, { CheckoutParams } from "@/components/checkout/StripeEmbeddedCheckout";
 
 export default function Checkout() {
+  const SHIPPING_TEST_CODE = "DAVID-TEST";
+  const SHIPPING_TEST_CENTS = 1;
   const { items, totalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -39,6 +41,9 @@ export default function Checkout() {
   const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
   const [shippingError, setShippingError] = useState<string | null>(null);
   const requestIdRef = useRef(0);
+  const [shippingCode, setShippingCode] = useState("");
+  const [appliedShippingCode, setAppliedShippingCode] = useState<string | null>(null);
+  const [shippingOverrideCents, setShippingOverrideCents] = useState<number | null>(null);
 
   // Calculate total quantity
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -108,7 +113,9 @@ export default function Checkout() {
   const tax = subtotal * 0.08; // 8% tax
   
   // Use real shipping quote - no fallback, must have valid quote to proceed
-  const shippingCost = shippingQuote ? shippingQuote.shippingAmountCents / 100 : 0;
+  const baseShippingCents = shippingQuote ? shippingQuote.shippingAmountCents : 0;
+  const effectiveShippingCents = shippingOverrideCents ?? baseShippingCents;
+  const shippingCost = effectiveShippingCents / 100;
   const total = subtotal + tax + shippingCost;
   
   // Address is complete when all required fields are filled
@@ -165,7 +172,8 @@ export default function Checkout() {
         lastName,
         phone: phone || undefined,
       },
-      shippingCostCents: shippingQuote.shippingAmountCents,
+      shippingCode: appliedShippingCode || undefined,
+      shippingCostCents: shippingOverrideCents ?? shippingQuote.shippingAmountCents,
       shippingAddress,
       shippingQuote: {
         carrier: shippingQuote.carrier,
@@ -175,6 +183,43 @@ export default function Checkout() {
       },
     });
     setShowEmbeddedCheckout(true);
+  };
+
+  const handleApplyShippingCode = () => {
+    const normalized = shippingCode.trim().toUpperCase();
+    if (!normalized) {
+      toast({
+        title: "Enter a code",
+        description: "Please enter a shipping code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (normalized === SHIPPING_TEST_CODE) {
+      setAppliedShippingCode(SHIPPING_TEST_CODE);
+      setShippingOverrideCents(SHIPPING_TEST_CENTS);
+      setShippingCode(SHIPPING_TEST_CODE);
+      toast({
+        title: "Shipping code applied",
+        description: "Shipping updated to $0.01.",
+      });
+      return;
+    }
+
+    setAppliedShippingCode(null);
+    setShippingOverrideCents(null);
+    toast({
+      title: "Invalid code",
+      description: "That shipping code is not valid.",
+      variant: "destructive",
+    });
+  };
+
+  const handleRemoveShippingCode = () => {
+    setAppliedShippingCode(null);
+    setShippingOverrideCents(null);
+    setShippingCode("");
   };
 
   const handleBackToCart = () => {
@@ -465,6 +510,34 @@ export default function Checkout() {
                           <span className="text-muted-foreground">—</span>
                         )}
                       </span>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="shippingCode" className="text-xs text-muted-foreground">
+                        Shipping Code
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="shippingCode"
+                          value={shippingCode}
+                          onChange={(e) => setShippingCode(e.target.value)}
+                          placeholder="Enter code"
+                        />
+                        {appliedShippingCode ? (
+                          <Button variant="outline" onClick={handleRemoveShippingCode}>
+                            Remove
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={handleApplyShippingCode}>
+                            Apply
+                          </Button>
+                        )}
+                      </div>
+                      {appliedShippingCode && (
+                        <p className="text-xs text-muted-foreground">
+                          Code {appliedShippingCode} applied. Shipping is $0.01.
+                        </p>
+                      )}
                     </div>
                     
                     {/* Shipping Details */}

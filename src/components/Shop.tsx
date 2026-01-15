@@ -44,6 +44,7 @@ const Shop = () => {
   );
 
   const heroRef = useAnimeOnScroll(heroAnimation);
+  const skeletonRef = useRef<HTMLDivElement>(null);
 
   // Use shop config from context with fallback defaults
   const showViewAllButton = shop.showViewAllButton ?? true;
@@ -72,7 +73,6 @@ const Shop = () => {
         setProducts(visible);
         const curated = visible.slice(0, 6);
         setDisplayedProducts(curated);
-        requestAnimationFrame(() => requestAnimationFrame(playEntrance));
       })
       .catch((error) => {
         console.error("Failed to load products:", error);
@@ -100,6 +100,39 @@ const Shop = () => {
       easing: "easeOutQuart",
     });
   };
+
+  useEffect(() => {
+    if (!loading) return;
+    const nodes = skeletonRef.current?.querySelectorAll(".shop-skeleton");
+    if (!nodes?.length) return;
+    const animation = animate(nodes, {
+      opacity: [0.5, 1],
+      duration: 700,
+      delay: stagger(120),
+      direction: "alternate",
+      loop: true,
+      easing: "easeInOutSine",
+    });
+    return () => animation.pause();
+  }, [loading]);
+
+  useEffect(() => {
+    if (!displayedProducts.length) return;
+    let raf1 = 0;
+    let raf2 = 0;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => playEntrance());
+    });
+    const fallback = window.setTimeout(() => {
+      const cards = gridRef.current?.querySelectorAll(".product-card");
+      cards?.forEach((card) => card.classList.remove("opacity-0"));
+    }, 900);
+    return () => {
+      if (raf1) cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+      window.clearTimeout(fallback);
+    };
+  }, [displayedProducts, playEntrance]);
 
   const handleAddToCart = (product: Product, e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -172,8 +205,29 @@ const Shop = () => {
   if (loading) {
     return (
       <section className="py-20 px-6 bg-muted">
-        <div className="max-w-7xl mx-auto flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+          <div
+            ref={skeletonRef}
+            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div
+                key={`skeleton-${index}`}
+                className="shop-skeleton rounded-2xl border border-border bg-white/70 p-6 shadow-soft"
+              >
+                <div className="aspect-[4/5] w-full rounded-xl bg-muted" />
+                <div className="mt-5 space-y-3">
+                  <div className="h-4 w-3/4 rounded-full bg-muted" />
+                  <div className="h-3 w-full rounded-full bg-muted" />
+                  <div className="h-3 w-2/3 rounded-full bg-muted" />
+                  <div className="h-8 w-32 rounded-full bg-muted" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     );

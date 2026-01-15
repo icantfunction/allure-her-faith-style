@@ -115,11 +115,13 @@ export default function VirtualTryOn() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.error || "Try-on request failed");
+        throw new Error(
+          `Try-on failed (${res.status}): ${data?.error || res.statusText || "request_failed"}`
+        );
       }
       const resultBase64 = data?.imageBase64;
       if (!resultBase64) {
-        throw new Error("No image returned from Vertex AI.");
+        throw new Error(`Try-on failed (${res.status}): no_image_returned`);
       }
       setResultImage(`data:image/png;base64,${resultBase64}`);
     } catch (err: any) {

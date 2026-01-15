@@ -35,6 +35,31 @@ const jsonResponse = (res, status, payload) => {
   res.end(body);
 };
 
+const isPlainObject = (value) =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const findFirstBase64 = (value) => {
+  if (!value) return null;
+  const stack = [value];
+  while (stack.length) {
+    const current = stack.pop();
+    if (Array.isArray(current)) {
+      for (const item of current) stack.push(item);
+      continue;
+    }
+    if (!isPlainObject(current)) continue;
+    for (const [key, val] of Object.entries(current)) {
+      if (key === "bytesBase64Encoded" && typeof val === "string" && val.length > 64) {
+        return val;
+      }
+      if (isPlainObject(val) || Array.isArray(val)) {
+        stack.push(val);
+      }
+    }
+  }
+  return null;
+};
+
 const base64Url = (input) =>
   Buffer.from(input)
     .toString("base64")
@@ -171,10 +196,23 @@ async function callVertexTryOn({ personBase64, productBase64 }) {
     prediction?.bytesBase64Encoded ||
     prediction?.image?.bytesBase64Encoded ||
     prediction?.generatedImage?.bytesBase64Encoded ||
+    prediction?.images?.[0]?.bytesBase64Encoded ||
+    prediction?.generatedImages?.[0]?.bytesBase64Encoded ||
+    findFirstBase64(prediction) ||
     null;
 
   if (!bytes) {
-    return { raw: data };
+    const error = new Error("no_image_returned");
+    error.statusCode = 502;
+    error.details = {
+      responseKeys: data ? Object.keys(data) : [],
+      predictionKeys: prediction
+        ? Array.isArray(prediction)
+          ? ["array"]
+          : Object.keys(prediction)
+        : [],
+    };
+    throw error;
   }
 
   return { imageBase64: bytes };
@@ -263,7 +301,11 @@ const server = http.createServer(async (req, res) => {
       });
       jsonResponse(res, 200, result);
     } catch (err) {
-      jsonResponse(res, 500, { error: err?.message || "try_on_failed" });
+      const status = err?.statusCode || 500;
+      jsonResponse(res, status, {
+        error: err?.message || "try_on_failed",
+        details: err?.details || undefined,
+      });
     }
   });
 });

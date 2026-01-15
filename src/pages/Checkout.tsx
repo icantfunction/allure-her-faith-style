@@ -148,7 +148,7 @@ export default function Checkout() {
       quantity: item.quantity,
       price_data: {
         currency: "usd",
-        product_data: { name: item.name },
+        product_data: { name: item.size ? `${item.name} (${item.size})` : item.name },
         unit_amount: Math.round(Number(item.price ?? 0) * 100),
       },
     }));
@@ -385,7 +385,7 @@ export default function Checkout() {
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.productId, item.size, item.quantity - 1)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -394,11 +394,16 @@ export default function Checkout() {
                             variant="outline"
                             size="icon"
                             className="h-6 w-6"
-                            onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.productId, item.size, item.quantity + 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
+                        {item.size && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Size: {item.size}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-col items-end justify-between">
                         <p className="font-semibold text-foreground">
@@ -407,7 +412,7 @@ export default function Checkout() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeFromCart(item.productId, item.size)}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />

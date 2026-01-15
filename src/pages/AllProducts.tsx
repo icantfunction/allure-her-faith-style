@@ -14,6 +14,7 @@ type Product = {
   description?: string;
   imageUrls?: string[];
   visible?: boolean;
+  sizes?: string[];
 };
 
 export default function AllProducts() {

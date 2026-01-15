@@ -134,13 +134,13 @@ export const AdminAPI = {
       body: JSON.stringify({ siteId: SITE_ID, fileName, contentType }),
     }),
   
-  createProduct: (p: { name: string; price: number; images?: string[]; description?: string; sku?: string }) =>
+  createProduct: (p: { name: string; price: number; images?: string[]; description?: string; sku?: string; sizes?: string[] }) =>
     apiFetch<{ productId: string }>(`/admin/products`, {
       method: "POST",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
     }),
   
-  updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string; visible: boolean }>) =>
+  updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string; sizes: string[]; visible: boolean }>) =>
     apiFetch<void>(`/admin/products/${encodeURIComponent(id)}?siteId=${encodeURIComponent(SITE_ID)}`, {
       method: "PUT",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),

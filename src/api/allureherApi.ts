@@ -232,6 +232,7 @@ export async function adminCreateProduct(input: {
   images?: string[];
   description?: string;
   sku?: string;
+  sizes?: string[];
 }) {
   return request<{ productId: string }>(
     "/admin/products",
@@ -255,6 +256,7 @@ export async function adminUpdateProduct(
     images?: string[];
     description?: string;
     sku?: string;
+    sizes?: string[];
   }
 ): Promise<void> {
   await request(

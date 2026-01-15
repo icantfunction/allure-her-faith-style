@@ -16,6 +16,7 @@ type Product = {
   description?: string;
   imageUrls?: string[];
   visible?: boolean;
+  sizes?: string[];
 };
 
 
@@ -102,6 +103,14 @@ const Shop = () => {
 
   const handleAddToCart = (product: Product, e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    if (product.sizes && product.sizes.length > 0) {
+      toast({
+        title: "Choose a size",
+        description: "Select your size on the product page.",
+      });
+      navigate(`/product/${product.productId}`);
+      return;
+    }
     addToCart({
       productId: product.productId,
       name: product.name,
@@ -233,7 +242,7 @@ const Shop = () => {
           {displayedProducts.map((product) => (
             <div
               key={product.productId}
-              className="product-card relative cursor-pointer bg-white/80 backdrop-blur shadow-soft border border-border overflow-hidden opacity-0"
+              className="product-card group relative cursor-pointer bg-white/80 backdrop-blur shadow-soft border border-border overflow-hidden opacity-0"
               style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.06))" }}
               onMouseEnter={handleProductHover}
               onMouseLeave={handleProductLeave}
@@ -243,13 +252,22 @@ const Shop = () => {
                 <span className="h-2 w-2 rounded-full bg-emerald-300" />
                 Ready to ship
               </div>
-              <div className="aspect-[4/5] overflow-hidden bg-muted">
+              <div className="aspect-[4/5] overflow-hidden bg-muted relative">
                 {product.imageUrls?.[0] ? (
-                  <img
-                    src={product.imageUrls[0]}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                  />
+                  <>
+                    <img
+                      src={product.imageUrls[0]}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {product.imageUrls[1] && (
+                      <img
+                        src={product.imageUrls[1]}
+                        alt={`${product.name} preview`}
+                        className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      />
+                    )}
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                     No image

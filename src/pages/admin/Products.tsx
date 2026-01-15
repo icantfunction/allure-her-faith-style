@@ -37,6 +37,7 @@ type Product = {
   images?: string[];
   imageUrls?: string[];
   visible?: boolean;
+  sizes?: string[];
 };
 
 export default function Products() {
@@ -44,6 +45,7 @@ export default function Products() {
   const [name, setName] = React.useState("");
   const [price, setPrice] = React.useState<number>(0);
   const [description, setDescription] = React.useState("");
+  const [sizesInput, setSizesInput] = React.useState("");
   const [files, setFiles] = React.useState<File[]>([]);
   const [busy, setBusy] = React.useState(false);
   
@@ -53,12 +55,21 @@ export default function Products() {
   const [editName, setEditName] = React.useState("");
   const [editPrice, setEditPrice] = React.useState<number>(0);
   const [editDescription, setEditDescription] = React.useState("");
+  const [editSizesInput, setEditSizesInput] = React.useState("");
   const [editFiles, setEditFiles] = React.useState<File[]>([]);
   
   // Delete state
   const [deleteProductId, setDeleteProductId] = React.useState<string | null>(null);
   
   const { toast } = useToast();
+
+  const parseSizes = (value: string): string[] => {
+    const sizes = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    return Array.from(new Set(sizes));
+  };
 
   React.useEffect(() => { 
     loadProducts();
@@ -93,10 +104,12 @@ export default function Products() {
           images.push(presign.key);
         }
       }
-      await AdminAPI.createProduct({ name, price, description, images });
+      const sizes = parseSizes(sizesInput);
+      await AdminAPI.createProduct({ name, price, description, images, sizes });
       setName(""); 
       setPrice(0); 
       setDescription("");
+      setSizesInput("");
       setFiles([]);
       await loadProducts();
       toast({
@@ -134,12 +147,14 @@ export default function Products() {
         name: editName,
         price: editPrice,
         description: editDescription,
+        sizes: parseSizes(editSizesInput),
         ...(images && { images }),
       });
       
       setEditDialogOpen(false);
       setEditingProduct(null);
       setEditFiles([]);
+      setEditSizesInput("");
       await loadProducts();
       
       toast({
@@ -201,6 +216,7 @@ export default function Products() {
     setEditName(product.name);
     setEditPrice(product.price ?? 0);
     setEditDescription(product.description || "");
+    setEditSizesInput((product.sizes || []).join(", "));
     setEditFiles([]);
     setEditDialogOpen(true);
   };
@@ -269,6 +285,15 @@ export default function Products() {
                   onChange={(e) => setPrice(Number(e.target.value))}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sizes">Sizes (comma separated)</Label>
+              <Input
+                id="sizes"
+                placeholder="e.g., XS, S, M, L"
+                value={sizesInput}
+                onChange={(e) => setSizesInput(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Description</Label>
@@ -449,6 +474,15 @@ export default function Products() {
                   onChange={(e) => setEditPrice(Number(e.target.value))}
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-sizes">Sizes (comma separated)</Label>
+              <Input
+                id="edit-sizes"
+                placeholder="e.g., XS, S, M, L"
+                value={editSizesInput}
+                onChange={(e) => setEditSizesInput(e.target.value)}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>

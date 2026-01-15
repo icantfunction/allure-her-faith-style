@@ -14,6 +14,7 @@ type Product = {
   price: number;
   description?: string;
   imageUrls?: string[];
+  sizes?: string[];
 };
 
 export default function ProductDetail() {
@@ -25,6 +26,7 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [activeImage, setActiveImage] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
   useEffect(() => {
     if (!productId) return;
@@ -34,6 +36,8 @@ export default function ProductDetail() {
         setProduct(data);
         const images = data?.imageUrls?.filter(Boolean) || [];
         setActiveImage(images[0] || null);
+        const sizes = data?.sizes || [];
+        setSelectedSize(sizes.length > 0 ? sizes[0] : null);
       })
       .catch((err) => {
         console.error(err);
@@ -48,6 +52,14 @@ export default function ProductDetail() {
 
   const handleAddToCart = () => {
     if (!product) return;
+    if (product.sizes?.length && !selectedSize) {
+      toast({
+        title: "Select a size",
+        description: "Please choose a size before adding to cart.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     addToCart(
       {
@@ -55,6 +67,7 @@ export default function ProductDetail() {
         name: product.name,
         price: product.price,
         imageUrl: product.imageUrls?.[0],
+        size: selectedSize || undefined,
       },
       quantity
     );
@@ -186,6 +199,24 @@ export default function ProductDetail() {
                 </Button>
               </div>
             </div>
+
+            {product.sizes && product.sizes.length > 0 && (
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-foreground">Size</label>
+                <div className="flex flex-wrap gap-2">
+                  {product.sizes.map((size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={selectedSize === size ? "default" : "outline"}
+                      onClick={() => setSelectedSize(size)}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Add to Cart */}
             <Button

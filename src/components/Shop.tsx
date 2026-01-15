@@ -113,7 +113,7 @@ const Shop = () => {
       loop: true,
       easing: "easeInOutSine",
     });
-    return () => animation.pause();
+    return () => { animation.pause(); };
   }, [loading]);
 
   useEffect(() => {

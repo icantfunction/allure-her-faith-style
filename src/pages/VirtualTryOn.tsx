@@ -138,8 +138,7 @@ export default function VirtualTryOn() {
             Virtual Try-On
           </h1>
           <p className="text-muted-foreground mt-2">
-            Upload a person photo and select a product. We'll generate a preview
-            using Vertex AI.
+            Upload a person photo and select a product.
           </p>
         </div>
 

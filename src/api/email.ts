@@ -16,7 +16,8 @@ export type CampaignStats = {
 
 export type CampaignSegment =
   | { type: "all" }
-  | { type: "source"; source: string };
+  | { type: "source"; source: string }
+  | { type: "test" };
 
 export type Campaign = {
   siteId: string;

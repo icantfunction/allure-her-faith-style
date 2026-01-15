@@ -57,7 +57,7 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess, source
   const [sending, setSending] = React.useState(false);
   const [result, setResult] = React.useState<CreateCampaignResponse | null>(null);
   const [previewMode, setPreviewMode] = React.useState<"desktop" | "mobile">("desktop");
-  const [segmentType, setSegmentType] = React.useState<"all" | "source">("all");
+  const [segmentType, setSegmentType] = React.useState<"all" | "source" | "test">("all");
   const [segmentSource, setSegmentSource] = React.useState("");
 
   const handleReset = () => {
@@ -131,6 +131,8 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess, source
       }
       if (segmentType === "source") {
         payload.segment = { type: "source", source: segmentSource };
+      } else if (segmentType === "test") {
+        payload.segment = { type: "test" };
       }
 
       const response = await adminCreateCampaign(payload);
@@ -244,7 +246,7 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess, source
 
             <div className="space-y-3">
               <Label>Audience Segment</Label>
-              <RadioGroup value={segmentType} onValueChange={(v) => setSegmentType(v as "all" | "source")}>
+              <RadioGroup value={segmentType} onValueChange={(v) => setSegmentType(v as "all" | "source" | "test")}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="all" id="segment-all" />
                   <Label htmlFor="segment-all">All subscribers</Label>
@@ -252,6 +254,10 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess, source
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="source" id="segment-source" />
                   <Label htmlFor="segment-source">By signup source</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="test" id="segment-test" />
+                  <Label htmlFor="segment-test">Test users (info@shopallureher.com, ramosnco@gmail.com)</Label>
                 </div>
               </RadioGroup>
               {segmentType === "source" && (

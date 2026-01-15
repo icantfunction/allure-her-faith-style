@@ -1,14 +1,22 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { PublicAPI } from "@/lib/api";
 
 type ImagePayload = {
   dataUrl: string;
   base64: string;
+};
+
+type Product = {
+  productId: string;
+  name: string;
+  imageUrls?: string[];
+  visible?: boolean;
 };
 
 const readImage = (file: File): Promise<ImagePayload> =>
@@ -25,12 +33,51 @@ const readImage = (file: File): Promise<ImagePayload> =>
 
 export default function VirtualTryOn() {
   const [personImage, setPersonImage] = useState<ImagePayload | null>(null);
-  const [productImage, setProductImage] = useState<ImagePayload | null>(null);
+  const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState("");
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sampleCount, setSampleCount] = useState(1);
-  const [baseSteps, setBaseSteps] = useState(30);
+
+  useEffect(() => {
+    let active = true;
+    setProductsLoading(true);
+    setProductsError(null);
+    PublicAPI.listProducts()
+      .then((data) => {
+        if (!active) return;
+        const visible = (data || []).filter(
+          (item: Product) => item.visible !== false && item.imageUrls?.[0]
+        );
+        setProducts(visible);
+        if (visible.length > 0) {
+          setSelectedProductId(visible[0].productId);
+          setProductImageUrl(visible[0].imageUrls?.[0] || null);
+        } else {
+          setSelectedProductId("");
+          setProductImageUrl(null);
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setProducts([]);
+        setSelectedProductId("");
+        setProductImageUrl(null);
+        setProductsError("Unable to load products. Please try again.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setProductsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handlePersonChange = async (file?: File | null) => {
     if (!file) return;
@@ -39,16 +86,17 @@ export default function VirtualTryOn() {
     setResultImage(null);
   };
 
-  const handleProductChange = async (file?: File | null) => {
-    if (!file) return;
-    const payload = await readImage(file);
-    setProductImage(payload);
+  const handleProductSelect = (productId: string) => {
+    setSelectedProductId(productId);
+    const next = products.find((item) => item.productId === productId);
+    setProductImageUrl(next?.imageUrls?.[0] || null);
     setResultImage(null);
+    setError(null);
   };
 
   const handleGenerate = async () => {
-    if (!personImage || !productImage) {
-      setError("Upload both a person photo and a garment image.");
+    if (!personImage || !productImageUrl) {
+      setError("Upload a person photo and choose a product to try on.");
       return;
     }
 
@@ -63,9 +111,8 @@ export default function VirtualTryOn() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           personBase64: personImage.base64,
-          productBase64: productImage.base64,
+          productImageUrl,
           sampleCount,
-          baseSteps,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -93,7 +140,7 @@ export default function VirtualTryOn() {
             Virtual Try-On
           </h1>
           <p className="text-muted-foreground mt-2">
-            Upload a person photo and a garment image. We’ll generate a preview
+            Upload a person photo and select a product. We'll generate a preview
             using Vertex AI.
           </p>
         </div>
@@ -122,45 +169,53 @@ export default function VirtualTryOn() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="productImage">Garment Photo</Label>
-                <Input
-                  id="productImage"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleProductChange(e.target.files?.[0])}
-                />
-                {productImage && (
+                <Label htmlFor="productSelect">Product to Try On</Label>
+                <select
+                  id="productSelect"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={selectedProductId}
+                  onChange={(e) => handleProductSelect(e.target.value)}
+                  disabled={productsLoading || products.length === 0}
+                >
+                  <option value="">
+                    {productsLoading ? "Loading products..." : "Select a product"}
+                  </option>
+                  {products.map((product) => (
+                    <option key={product.productId} value={product.productId}>
+                      {product.name}
+                    </option>
+                  ))}
+                </select>
+                {productsError && (
+                  <p className="text-sm text-destructive">{productsError}</p>
+                )}
+                {!productsError && products.length === 0 && !productsLoading && (
+                  <p className="text-sm text-muted-foreground">
+                    No products available yet.
+                  </p>
+                )}
+                {productImageUrl && (
                   <img
-                    src={productImage.dataUrl}
-                    alt="Garment preview"
+                    src={productImageUrl}
+                    alt="Selected product preview"
                     className="mt-3 w-full max-h-72 object-cover rounded-lg border"
                   />
                 )}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="sampleCount">Sample Count</Label>
-                  <Input
-                    id="sampleCount"
-                    type="number"
-                    min={1}
-                    max={4}
-                    value={sampleCount}
-                    onChange={(e) => setSampleCount(Number(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="baseSteps">Base Steps</Label>
-                  <Input
-                    id="baseSteps"
-                    type="number"
-                    min={10}
-                    max={60}
-                    value={baseSteps}
-                    onChange={(e) => setBaseSteps(Number(e.target.value))}
-                  />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="sampleCount">Sample Count</Label>
+                <Input
+                  id="sampleCount"
+                  type="number"
+                  min={1}
+                  max={4}
+                  value={sampleCount}
+                  onChange={(e) => setSampleCount(Number(e.target.value))}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Higher values create more variations but take longer.
+                </p>
               </div>
 
               {error && <p className="text-sm text-destructive">{error}</p>}

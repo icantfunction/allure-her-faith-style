@@ -180,6 +180,25 @@ async function callVertexTryOn({ personBase64, productBase64, sampleCount, baseS
   return { imageBase64: bytes };
 }
 
+async function fetchImageBase64(imageUrl) {
+  let parsed;
+  try {
+    parsed = new URL(imageUrl);
+  } catch {
+    throw new Error("Invalid productImageUrl");
+  }
+  if (!["https:", "http:"].includes(parsed.protocol)) {
+    throw new Error("productImageUrl must be http or https");
+  }
+
+  const res = await fetch(parsed.toString());
+  if (!res.ok) {
+    throw new Error("Failed to fetch product image");
+  }
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return buffer.toString("base64");
+}
+
 const server = http.createServer(async (req, res) => {
   const origin = req.headers.origin || "";
   if (origin && ALLOWED_ORIGINS.has(origin)) {
@@ -222,9 +241,18 @@ const server = http.createServer(async (req, res) => {
     }
 
     const personBase64 = payload.personBase64 || payload.personImageBase64;
-    const productBase64 = payload.productBase64 || payload.productImageBase64;
+    let productBase64 = payload.productBase64 || payload.productImageBase64;
+    if (!productBase64 && payload.productImageUrl) {
+      try {
+        productBase64 = await fetchImageBase64(payload.productImageUrl);
+      } catch (err) {
+        jsonResponse(res, 400, { error: err?.message || "invalid_product_image" });
+        return;
+      }
+    }
+
     if (!personBase64 || !productBase64) {
-      jsonResponse(res, 400, { error: "personBase64 and productBase64 are required" });
+      jsonResponse(res, 400, { error: "personBase64 and productImageUrl (or productBase64) are required" });
       return;
     }
 

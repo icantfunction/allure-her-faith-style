@@ -44,7 +44,7 @@ export default function Products() {
   const [name, setName] = React.useState("");
   const [price, setPrice] = React.useState<number>(0);
   const [description, setDescription] = React.useState("");
-  const [file, setFile] = React.useState<File | null>(null);
+  const [files, setFiles] = React.useState<File[]>([]);
   const [busy, setBusy] = React.useState(false);
   
   // Edit state
@@ -53,7 +53,7 @@ export default function Products() {
   const [editName, setEditName] = React.useState("");
   const [editPrice, setEditPrice] = React.useState<number>(0);
   const [editDescription, setEditDescription] = React.useState("");
-  const [editFile, setEditFile] = React.useState<File | null>(null);
+  const [editFiles, setEditFiles] = React.useState<File[]>([]);
   
   // Delete state
   const [deleteProductId, setDeleteProductId] = React.useState<string | null>(null);
@@ -86,16 +86,18 @@ export default function Products() {
     try {
       setBusy(true);
       let images: string[] = [];
-      if (file) {
-        const presign = await AdminAPI.presignImage(file.name, file.type || "application/octet-stream");
-        await uploadWithPresign(presign.uploadUrl, file);
-        images = [presign.key];
+      if (files.length > 0) {
+        for (const upload of files.slice(0, 2)) {
+          const presign = await AdminAPI.presignImage(upload.name, upload.type || "application/octet-stream");
+          await uploadWithPresign(presign.uploadUrl, upload);
+          images.push(presign.key);
+        }
       }
       await AdminAPI.createProduct({ name, price, description, images });
       setName(""); 
       setPrice(0); 
       setDescription("");
-      setFile(null);
+      setFiles([]);
       await loadProducts();
       toast({
         title: "Success!",
@@ -119,10 +121,13 @@ export default function Products() {
       setBusy(true);
       let images: string[] | undefined;
       
-      if (editFile) {
-        const presign = await AdminAPI.presignImage(editFile.name, editFile.type || "application/octet-stream");
-        await uploadWithPresign(presign.uploadUrl, editFile);
-        images = [presign.key];
+      if (editFiles.length > 0) {
+        images = [];
+        for (const upload of editFiles.slice(0, 2)) {
+          const presign = await AdminAPI.presignImage(upload.name, upload.type || "application/octet-stream");
+          await uploadWithPresign(presign.uploadUrl, upload);
+          images.push(presign.key);
+        }
       }
       
       await AdminAPI.updateProduct(editingProduct.productId, {
@@ -134,7 +139,7 @@ export default function Products() {
       
       setEditDialogOpen(false);
       setEditingProduct(null);
-      setEditFile(null);
+      setEditFiles([]);
       await loadProducts();
       
       toast({
@@ -196,7 +201,7 @@ export default function Products() {
     setEditName(product.name);
     setEditPrice(product.price ?? 0);
     setEditDescription(product.description || "");
-    setEditFile(null);
+    setEditFiles([]);
     setEditDialogOpen(true);
   };
 
@@ -281,14 +286,25 @@ export default function Products() {
                 <Input
                   id="image"
                   type="file"
+                  multiple
                   accept="image/*"
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    const selected = Array.from(e.target.files || []);
+                    if (selected.length > 2) {
+                      toast({
+                        title: "Too many images",
+                        description: "Please select up to 2 images.",
+                        variant: "destructive",
+                      });
+                    }
+                    setFiles(selected.slice(0, 2));
+                  }}
                   className="cursor-pointer"
                 />
-                {file && (
+                {files.length > 0 && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <ImagePlus className="h-4 w-4" />
-                    {file.name}
+                    <span>{files.map((upload) => upload.name).join(", ")}</span>
                   </div>
                 )}
               </div>
@@ -448,12 +464,25 @@ export default function Products() {
               <Input
                 id="edit-image"
                 type="file"
+                multiple
                 accept="image/*"
-                onChange={(e) => setEditFile(e.target.files?.[0] || null)}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.files || []);
+                  if (selected.length > 2) {
+                    toast({
+                      title: "Too many images",
+                      description: "Please select up to 2 images.",
+                      variant: "destructive",
+                    });
+                  }
+                  setEditFiles(selected.slice(0, 2));
+                }}
                 className="cursor-pointer"
               />
-              {editFile && (
-                <p className="text-sm text-muted-foreground">New image: {editFile.name}</p>
+              {editFiles.length > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  New images: {editFiles.map((upload) => upload.name).join(", ")}
+                </p>
               )}
             </div>
           </div>

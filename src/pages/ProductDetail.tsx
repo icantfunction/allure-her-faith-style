@@ -24,12 +24,17 @@ export default function ProductDetail() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [activeImage, setActiveImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!productId) return;
     
     PublicAPI.getProduct(productId)
-      .then(setProduct)
+      .then((data) => {
+        setProduct(data);
+        const images = data?.imageUrls?.filter(Boolean) || [];
+        setActiveImage(images[0] || null);
+      })
       .catch((err) => {
         console.error(err);
         toast({
@@ -79,6 +84,9 @@ export default function ProductDetail() {
     );
   }
 
+  const images = product.imageUrls?.filter(Boolean).slice(0, 2) || [];
+  const primaryImage = activeImage || images[0] || null;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -102,17 +110,35 @@ export default function ProductDetail() {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="aspect-square rounded-lg overflow-hidden bg-muted"
+            className="space-y-4"
           >
-            {product.imageUrls?.[0] ? (
-              <img
-                src={product.imageUrls[0]}
-                alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                No image
+            <div className="aspect-square rounded-lg overflow-hidden bg-muted">
+              {primaryImage ? (
+                <img
+                  src={primaryImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  No image
+                </div>
+              )}
+            </div>
+            {images.length > 1 && (
+              <div className="grid grid-cols-2 gap-3">
+                {images.map((img) => (
+                  <button
+                    key={img}
+                    type="button"
+                    className={`aspect-square rounded-lg overflow-hidden border ${
+                      img === primaryImage ? "border-primary" : "border-transparent"
+                    }`}
+                    onClick={() => setActiveImage(img)}
+                  >
+                    <img src={img} alt={product.name} className="w-full h-full object-cover" />
+                  </button>
+                ))}
               </div>
             )}
           </motion.div>

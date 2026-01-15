@@ -141,15 +141,14 @@ export const AdminAPI = {
     }),
   
   updateProduct: (id: string, p: Partial<{ name: string; price: number; images: string[]; description: string; sku: string; visible: boolean }>) =>
-    apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
+    apiFetch<void>(`/admin/products/${encodeURIComponent(id)}?siteId=${encodeURIComponent(SITE_ID)}`, {
       method: "PUT",
       body: JSON.stringify({ siteId: SITE_ID, ...p }),
     }),
   
   deleteProduct: (id: string) =>
-    apiFetch<void>(`/admin/products/${encodeURIComponent(id)}`, {
+    apiFetch<void>(`/admin/products/${encodeURIComponent(id)}?siteId=${encodeURIComponent(SITE_ID)}`, {
       method: "DELETE",
-      body: JSON.stringify({ siteId: SITE_ID }),
     }),
   
   // Orders

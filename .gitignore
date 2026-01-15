@@ -26,3 +26,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local service account keys (never commit)
+gen-lang-client-0357230902-f14a19830c16.json

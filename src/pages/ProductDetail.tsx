@@ -228,6 +228,14 @@ export default function ProductDetail() {
               Add to Cart
             </Button>
 
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/try-on?productId=${product.productId}`)}
+              className="w-full"
+            >
+              Try on this look
+            </Button>
+
             {/* Continue Shopping */}
             <Button
               variant="outline"

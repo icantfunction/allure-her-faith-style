@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
 import { PublicAPI } from "@/lib/api";
+import { useSearchParams } from "react-router-dom";
 
 type ImagePayload = {
   dataUrl: string;
   base64: string;
+  contentType: string;
 };
 
 type Product = {
@@ -25,13 +26,32 @@ const readImage = (file: File): Promise<ImagePayload> =>
     reader.onload = () => {
       const dataUrl = String(reader.result || "");
       const base64 = dataUrl.split(",")[1] || "";
-      resolve({ dataUrl, base64 });
+      resolve({ dataUrl, base64, contentType: file.type || "image/jpeg" });
     };
     reader.onerror = () => reject(new Error("Failed to read file"));
     reader.readAsDataURL(file);
   });
 
+const ProgressPie = ({ value }: { value: number }) => {
+  const clamped = Math.max(0, Math.min(100, Math.round(value)));
+  const angle = (clamped / 100) * 360;
+  const fill = `conic-gradient(hsl(var(--primary)) ${angle}deg, hsl(var(--muted)) 0deg)`;
+
+  return (
+    <div className="relative h-10 w-10 shrink-0">
+      <div
+        className="h-10 w-10 rounded-full"
+        style={{ background: fill }}
+      />
+      <div className="absolute inset-1 rounded-full bg-background flex items-center justify-center text-[10px] font-semibold text-foreground">
+        {clamped}%
+      </div>
+    </div>
+  );
+};
+
 export default function VirtualTryOn() {
+  const [searchParams] = useSearchParams();
   const [personImage, setPersonImage] = useState<ImagePayload | null>(null);
   const [productImageUrl, setProductImageUrl] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -41,6 +61,7 @@ export default function VirtualTryOn() {
   const [resultImage, setResultImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -53,9 +74,15 @@ export default function VirtualTryOn() {
           (item: Product) => item.visible !== false && item.imageUrls?.[0]
         );
         setProducts(visible);
-        if (visible.length > 0) {
-          setSelectedProductId(visible[0].productId);
-          setProductImageUrl(visible[0].imageUrls?.[0] || null);
+        const requestedId =
+          searchParams.get("productId") || searchParams.get("product") || "";
+        const requestedProduct = requestedId
+          ? visible.find((item) => item.productId === requestedId)
+          : null;
+        const initialProduct = requestedProduct || visible[0];
+        if (initialProduct) {
+          setSelectedProductId(initialProduct.productId);
+          setProductImageUrl(initialProduct.imageUrls?.[0] || null);
         } else {
           setSelectedProductId("");
           setProductImageUrl(null);
@@ -76,7 +103,27 @@ export default function VirtualTryOn() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!loading) {
+      setProgress(0);
+      return;
+    }
+
+    setProgress(0);
+    const interval = window.setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) return prev;
+        const bump = Math.max(2, Math.round(Math.random() * 12));
+        return Math.min(90, prev + bump);
+      });
+    }, 450);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, [loading]);
 
   const handlePersonChange = async (file?: File | null) => {
     if (!file) return;
@@ -110,7 +157,9 @@ export default function VirtualTryOn() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           personBase64: personImage.base64,
+          personContentType: personImage.contentType,
           productImageUrl,
+          productId: selectedProductId || undefined,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -127,7 +176,10 @@ export default function VirtualTryOn() {
     } catch (err: any) {
       setError(err?.message || "Try-on failed.");
     } finally {
-      setLoading(false);
+      setProgress(100);
+      window.setTimeout(() => {
+        setLoading(false);
+      }, 200);
     }
   };
 
@@ -212,10 +264,10 @@ export default function VirtualTryOn() {
                 disabled={loading}
               >
                 {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
-                  </>
+                  <span className="flex items-center justify-center gap-3">
+                    <ProgressPie value={progress} />
+                    <span>Generating {Math.round(progress)}%</span>
+                  </span>
                 ) : (
                   "Generate Try-On"
                 )}

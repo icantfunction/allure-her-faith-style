@@ -1,12 +1,14 @@
 import http from "node:http";
 import { readFile } from "node:fs/promises";
-import { createSign } from "node:crypto";
+import { createSign, randomUUID } from "node:crypto";
 import { URL } from "node:url";
 
 const PORT = Number(process.env.VTO_PORT || 8787);
 const VERTEX_PROJECT_ID = process.env.VERTEX_PROJECT_ID;
 const VERTEX_LOCATION = process.env.VERTEX_LOCATION || "us-central1";
 const VERTEX_MODEL = process.env.VERTEX_MODEL || "virtual-try-on-preview-08-04";
+const STORAGE_BUCKET = process.env.VTO_STORAGE_BUCKET;
+const STORAGE_PREFIX = (process.env.VTO_STORAGE_PREFIX || "tryon").replace(/\/+$/, "");
 const SERVICE_ACCOUNT_PATH =
   process.env.GOOGLE_APPLICATION_CREDENTIALS ||
   process.env.VERTEX_SERVICE_ACCOUNT_JSON;
@@ -58,6 +60,88 @@ const findFirstBase64 = (value) => {
     }
   }
   return null;
+};
+
+const uploadBufferToGcs = async ({ objectName, buffer, contentType }) => {
+  if (!STORAGE_BUCKET) return;
+  const token = await getAccessToken();
+  const uploadUrl = `https://storage.googleapis.com/upload/storage/v1/b/${encodeURIComponent(
+    STORAGE_BUCKET
+  )}/o?uploadType=media&name=${encodeURIComponent(objectName)}`;
+
+  const res = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": contentType,
+      "Content-Length": buffer.length.toString(),
+    },
+    body: buffer,
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`storage_upload_failed: ${res.status} ${text}`.trim());
+  }
+};
+
+const storeTryOnArtifacts = async ({
+  personBase64,
+  personContentType,
+  productBase64,
+  productContentType,
+  productImageUrl,
+  productId,
+  resultBase64,
+}) => {
+  if (!STORAGE_BUCKET) return;
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const requestId = randomUUID();
+  const basePath = STORAGE_PREFIX ? `${STORAGE_PREFIX}/${stamp}-${requestId}` : `${stamp}-${requestId}`;
+
+  const uploads = [];
+  if (personBase64) {
+    uploads.push(
+      uploadBufferToGcs({
+        objectName: `${basePath}/person`,
+        buffer: Buffer.from(personBase64, "base64"),
+        contentType: personContentType || "image/jpeg",
+      })
+    );
+  }
+  if (productBase64) {
+    uploads.push(
+      uploadBufferToGcs({
+        objectName: `${basePath}/product`,
+        buffer: Buffer.from(productBase64, "base64"),
+        contentType: productContentType || "image/jpeg",
+      })
+    );
+  }
+  if (resultBase64) {
+    uploads.push(
+      uploadBufferToGcs({
+        objectName: `${basePath}/result`,
+        buffer: Buffer.from(resultBase64, "base64"),
+        contentType: "image/png",
+      })
+    );
+  }
+
+  const metadata = {
+    createdAt: new Date().toISOString(),
+    productId: productId || null,
+    productImageUrl: productImageUrl || null,
+  };
+  uploads.push(
+    uploadBufferToGcs({
+      objectName: `${basePath}/metadata.json`,
+      buffer: Buffer.from(JSON.stringify(metadata)),
+      contentType: "application/json",
+    })
+  );
+
+  await Promise.all(uploads);
 };
 
 const base64Url = (input) =>
@@ -234,7 +318,8 @@ async function fetchImageBase64(imageUrl) {
     throw new Error("Failed to fetch product image");
   }
   const buffer = Buffer.from(await res.arrayBuffer());
-  return buffer.toString("base64");
+  const contentType = res.headers.get("content-type") || "image/jpeg";
+  return { base64: buffer.toString("base64"), contentType };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -279,10 +364,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     const personBase64 = payload.personBase64 || payload.personImageBase64;
+    const personContentType = payload.personContentType || payload.personMime;
     let productBase64 = payload.productBase64 || payload.productImageBase64;
+    let productContentType = payload.productContentType || payload.productMime;
     if (!productBase64 && payload.productImageUrl) {
       try {
-        productBase64 = await fetchImageBase64(payload.productImageUrl);
+        const fetched = await fetchImageBase64(payload.productImageUrl);
+        productBase64 = fetched.base64;
+        productContentType = fetched.contentType;
       } catch (err) {
         jsonResponse(res, 400, { error: err?.message || "invalid_product_image" });
         return;
@@ -299,6 +388,21 @@ const server = http.createServer(async (req, res) => {
         personBase64,
         productBase64,
       });
+      if (STORAGE_BUCKET) {
+        try {
+          await storeTryOnArtifacts({
+            personBase64,
+            personContentType,
+            productBase64,
+            productContentType,
+            productImageUrl: payload.productImageUrl,
+            productId: payload.productId,
+            resultBase64: result.imageBase64,
+          });
+        } catch (storageErr) {
+          console.warn("Try-on storage error:", storageErr?.message || storageErr);
+        }
+      }
       jsonResponse(res, 200, result);
     } catch (err) {
       const status = err?.statusCode || 500;

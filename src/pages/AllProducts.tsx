@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PublicAPI } from "@/lib/api";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,9 @@ type Product = {
 export default function AllProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
+  const [hoverImageIndex, setHoverImageIndex] = useState(0);
+  const hoverTimerRef = useRef<number | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -50,6 +53,35 @@ export default function AllProducts() {
       easing: 'easeOutQuart',
     });
   };
+
+  const startHoverSlideshow = (product: Product) => {
+    setHoveredProductId(product.productId);
+    setHoverImageIndex(0);
+    if (!product.imageUrls?.[1]) return;
+    if (hoverTimerRef.current) {
+      window.clearInterval(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setInterval(() => {
+      setHoverImageIndex((prev) => (prev === 0 ? 1 : 0));
+    }, 3000);
+  };
+
+  const stopHoverSlideshow = () => {
+    if (hoverTimerRef.current) {
+      window.clearInterval(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredProductId(null);
+    setHoverImageIndex(0);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        window.clearInterval(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -105,17 +137,38 @@ export default function AllProducts() {
                 transition={{ duration: 0.3, delay: idx * 0.05 }}
                 className="product-card cursor-pointer"
                 style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.06))' }}
-                onMouseEnter={handleProductHover}
-                onMouseLeave={handleProductLeave}
+                onMouseEnter={(e) => {
+                  handleProductHover(e);
+                  startHoverSlideshow(product);
+                }}
+                onMouseLeave={(e) => {
+                  handleProductLeave(e);
+                  stopHoverSlideshow();
+                }}
                 onClick={() => navigate(`/product/${product.productId}`)}
               >
-                <div className="aspect-[4/5] overflow-hidden bg-muted">
+                <div className="aspect-[4/5] overflow-hidden bg-muted relative">
                   {product.imageUrls?.[0] ? (
-                    <img
-                      src={product.imageUrls[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                    />
+                    <>
+                      <img
+                        src={product.imageUrls[0]}
+                        alt={product.name}
+                        className={`w-full h-full object-cover transition-all duration-500 ${
+                          hoveredProductId === product.productId && hoverImageIndex === 1 && product.imageUrls?.[1]
+                            ? "opacity-0 scale-105"
+                            : "opacity-100 scale-100"
+                        }`}
+                      />
+                      {product.imageUrls[1] && (
+                        <img
+                          src={product.imageUrls[1]}
+                          alt={`${product.name} preview`}
+                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                            hoveredProductId === product.productId && hoverImageIndex === 1 ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                      )}
+                    </>
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                       No image
@@ -131,21 +184,34 @@ export default function AllProducts() {
                       {product.description}
                     </p>
                   )}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-lg text-primary">
                       ${product.price.toFixed(2)}
                     </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="btn-outline-luxury text-sm px-4 py-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/product/${product.productId}`);
-                      }}
-                    >
-                      View Details
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="btn-outline-luxury text-sm px-4 py-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/product/${product.productId}`);
+                        }}
+                      >
+                        View Details
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary-dark"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/try-on?productId=${product.productId}`);
+                        }}
+                      >
+                        Try on
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </motion.div>

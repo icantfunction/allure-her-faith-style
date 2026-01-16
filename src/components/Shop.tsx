@@ -30,6 +30,9 @@ const Shop = () => {
   const { addToCart } = useCart();
   const { toast } = useToast();
   const gridRef = useRef<HTMLDivElement>(null);
+  const hoverTimerRef = useRef<number | null>(null);
+  const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
+  const [hoverImageIndex, setHoverImageIndex] = useState(0);
 
   const heroAnimation = useMemo(
     () => ({
@@ -101,6 +104,27 @@ const Shop = () => {
     });
   };
 
+  const startHoverSlideshow = (product: Product) => {
+    setHoveredProductId(product.productId);
+    setHoverImageIndex(0);
+    if (!product.imageUrls?.[1]) return;
+    if (hoverTimerRef.current) {
+      window.clearInterval(hoverTimerRef.current);
+    }
+    hoverTimerRef.current = window.setInterval(() => {
+      setHoverImageIndex((prev) => (prev === 0 ? 1 : 0));
+    }, 3000);
+  };
+
+  const stopHoverSlideshow = () => {
+    if (hoverTimerRef.current) {
+      window.clearInterval(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredProductId(null);
+    setHoverImageIndex(0);
+  };
+
   useEffect(() => {
     if (!loading) return;
     const nodes = skeletonRef.current?.querySelectorAll(".shop-skeleton");
@@ -133,6 +157,14 @@ const Shop = () => {
       window.clearTimeout(fallback);
     };
   }, [displayedProducts, playEntrance]);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        window.clearInterval(hoverTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleAddToCart = (product: Product, e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -293,88 +325,114 @@ const Shop = () => {
         </div>
 
         <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3" ref={gridRef}>
-          {displayedProducts.map((product) => (
-            <div
-              key={product.productId}
-              className="product-card group relative cursor-pointer bg-white/80 backdrop-blur shadow-soft border border-border overflow-hidden opacity-0"
-              style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.06))" }}
-              onMouseEnter={handleProductHover}
-              onMouseLeave={handleProductLeave}
-              onClick={() => navigate(`/product/${product.productId}`)}
-            >
-              <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-black/60 text-white px-3 py-1 text-xs tracking-wide uppercase">
-                <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                Ready to ship
-              </div>
-              <div className="aspect-[4/5] overflow-hidden bg-muted relative">
-                {product.imageUrls?.[0] ? (
-                  <>
-                    <img
-                      src={product.imageUrls[0]}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    {product.imageUrls[1] && (
+          {displayedProducts.map((product) => {
+            const showAltImage =
+              hoveredProductId === product.productId &&
+              hoverImageIndex === 1 &&
+              Boolean(product.imageUrls?.[1]);
+
+            return (
+              <div
+                key={product.productId}
+                className="product-card group relative cursor-pointer bg-white/80 backdrop-blur shadow-soft border border-border overflow-hidden opacity-0"
+                style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.06))" }}
+                onMouseEnter={(e) => {
+                  handleProductHover(e);
+                  startHoverSlideshow(product);
+                }}
+                onMouseLeave={(e) => {
+                  handleProductLeave(e);
+                  stopHoverSlideshow();
+                }}
+                onClick={() => navigate(`/product/${product.productId}`)}
+              >
+                <div className="absolute top-3 left-3 z-10 flex items-center gap-2 rounded-full bg-black/60 text-white px-3 py-1 text-xs tracking-wide uppercase">
+                  <span className="h-2 w-2 rounded-full bg-emerald-300" />
+                  Ready to ship
+                </div>
+                <div className="aspect-[4/5] overflow-hidden bg-muted relative">
+                  {product.imageUrls?.[0] ? (
+                    <>
                       <img
-                        src={product.imageUrls[1]}
-                        alt={`${product.name} preview`}
-                        className="absolute inset-0 w-full h-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                        src={product.imageUrls[0]}
+                        alt={product.name}
+                        className={`w-full h-full object-cover transition-all duration-500 ${showAltImage ? "opacity-0 scale-105" : "opacity-100 scale-100"}`}
                       />
-                    )}
-                  </>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                    No image
-                  </div>
-                )}
-              </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="font-heading text-xl text-foreground">{product.name}</h3>
-                    {product.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
-                    )}
-                  </div>
-                  <span className="text-sm font-medium text-primary/90 bg-primary/10 px-3 py-1 rounded-full">
-                    ${Number(product.price ?? 0).toFixed(2)}
-                  </span>
+                      {product.imageUrls[1] && (
+                        <img
+                          src={product.imageUrls[1]}
+                          alt={`${product.name} preview`}
+                          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${showAltImage ? "opacity-100" : "opacity-0"}`}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                      No image
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-2 border-primary text-primary bg-white hover:bg-primary hover:text-primary-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/product/${product.productId}`);
-                    }}
-                  >
-                    View look
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-primary text-primary-foreground hover:bg-primary-dark flex-1 justify-center gap-2"
-                    onClick={(e) => handleAddToCart(product, e)}
-                  >
-                    <ShoppingBag className="h-4 w-4 cart-bounce" />
-                    Add to bag
-                    <svg className="h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path
-                        className="checkmark-path"
-                        d="M5 13l4 4L19 7"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeDasharray="28"
-                        strokeDashoffset="28"
-                      />
-                    </svg>
-                  </Button>
+                <div className="p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-heading text-xl text-foreground">{product.name}</h3>
+                      {product.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-primary/90 bg-primary/10 px-3 py-1 rounded-full">
+                      ${Number(product.price ?? 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-2 border-primary text-primary bg-white hover:bg-primary hover:text-primary-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/product/${product.productId}`);
+                        }}
+                      >
+                        View look
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-primary hover:text-primary-dark"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/try-on?productId=${product.productId}`);
+                        }}
+                      >
+                        Try on
+                      </Button>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="bg-primary text-primary-foreground hover:bg-primary-dark flex-1 justify-center gap-2"
+                      onClick={(e) => handleAddToCart(product, e)}
+                    >
+                      <ShoppingBag className="h-4 w-4 cart-bounce" />
+                      Add to bag
+                      <svg className="h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path
+                          className="checkmark-path"
+                          d="M5 13l4 4L19 7"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeDasharray="28"
+                          strokeDashoffset="28"
+                        />
+                      </svg>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {showViewAllButton && (

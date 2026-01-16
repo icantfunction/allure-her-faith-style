@@ -56,7 +56,7 @@ export function HeroVideo() {
               console.warn("Video failed to load - using fallback image");
               setVideoError(true);
             }}
-            className={videoError ? "hidden" : "absolute top-0 left-1/2 -translate-x-1/2 w-full h-auto min-h-full object-cover object-top scale-110 md:h-[250%] md:object-[center_top]"}
+            className={videoError ? "hidden" : "absolute inset-0 w-full h-full min-h-full min-w-full object-cover object-center"}
           >
             <source src={HERO_VIDEO_URL} type="video/mp4" />
           </video>

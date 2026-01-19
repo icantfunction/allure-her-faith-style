@@ -28,7 +28,9 @@ export const handler = async (event: any) => {
       successUrl,
       cancelUrl,
       returnUrl,
-      currency = "usd" 
+      currency = "usd",
+      discountCode,
+      discountPercent
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -60,6 +62,10 @@ export const handler = async (event: any) => {
       metadata: {
         customerName: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
         customerPhone: customer.phone || "",
+        ...(discountCode ? { discountCode: String(discountCode).trim().toUpperCase() } : {}),
+        ...(Number.isFinite(discountPercent)
+          ? { discountPercent: String(discountPercent) }
+          : {}),
       },
       shipping_address_collection: {
         allowed_countries: ["US", "CA"],

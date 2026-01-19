@@ -1,0 +1,40 @@
+{
+    "FunctionName": "my-site-admin-orders",
+    "FunctionArn": "arn:aws:lambda:us-east-1:279630655712:function:my-site-admin-orders",
+    "Runtime": "nodejs18.x",
+    "Role": "arn:aws:iam::279630655712:role/my-site-lambda-role",
+    "Handler": "index.handler",
+    "CodeSize": 26669914,
+    "Description": "",
+    "Timeout": 30,
+    "MemorySize": 512,
+    "LastModified": "2025-11-24T22:20:19.000+0000",
+    "CodeSha256": "cs34SMZHz19Pksvf/SG8jaFCoa4ykYKC7GfzLhc4ixc=",
+    "Version": "$LATEST",
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "9240b3c1-1f07-424f-9c4d-41684e4416a7",
+    "State": "Active",
+    "LastUpdateStatus": "InProgress",
+    "LastUpdateStatusReason": "The function is being created.",
+    "LastUpdateStatusReasonCode": "Creating",
+    "PackageType": "Zip",
+    "Architectures": [
+        "x86_64"
+    ],
+    "EphemeralStorage": {
+        "Size": 512
+    },
+    "SnapStart": {
+        "ApplyOn": "None",
+        "OptimizationStatus": "Off"
+    },
+    "RuntimeVersionConfig": {
+        "RuntimeVersionArn": "arn:aws:lambda:us-east-1::runtime:09b3ce2fcac5e073136005f4073a1a934831c7cf34c2d3054c7ece4474f4bee0"
+    },
+    "LoggingConfig": {
+        "LogFormat": "Text",
+        "LogGroup": "/aws/lambda/my-site-admin-orders"
+    }
+}

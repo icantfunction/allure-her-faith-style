@@ -1,11 +1,10 @@
 import { Button } from "@/components/ui/button";
-import { useAnimeOnScroll } from "@/hooks/useAnimeOnScroll";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { animate, stagger } from "animejs";
 import { PublicAPI } from "@/lib/api";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
 import { useNavigate } from "react-router-dom";
-import { ArrowUpRight, Loader2, ShoppingBag, Sparkles } from "lucide-react";
+import { Loader2, ShoppingBag, Sparkles } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -34,19 +33,6 @@ const Shop = () => {
   const [hoveredProductId, setHoveredProductId] = useState<string | null>(null);
   const [hoverImageIndex, setHoverImageIndex] = useState(0);
 
-  const heroAnimation = useMemo(
-    () => ({
-      targets: ".shop-hero-piece",
-      opacity: [0, 1],
-      translateY: [24, 0],
-      delay: stagger(80),
-      duration: 420,
-      easing: "easeOutQuart",
-    }),
-    []
-  );
-
-  const heroRef = useAnimeOnScroll(heroAnimation);
   const skeletonRef = useRef<HTMLDivElement>(null);
 
   // Use shop config from context with fallback defaults
@@ -279,9 +265,6 @@ const Shop = () => {
               <Sparkles className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">Coming Soon</span>
             </div>
-            <h2 className="text-4xl md:text-5xl font-heading font-semibold text-primary">
-              Shop the wardrobe
-            </h2>
             <p className="text-lg text-foreground/80">
               Our collection is being curated with care. Check back soon to discover pieces where faith meets fashion in timeless elegance.
             </p>
@@ -308,23 +291,7 @@ const Shop = () => {
         <div className="absolute bottom-0 -left-24 h-80 w-80 rounded-full bg-accent/20 blur-3xl" />
       </div>
       <div className="relative max-w-7xl mx-auto">
-        <div ref={heroRef} className="max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-white shadow-soft shop-hero-piece">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">New drop curated for Sunday and beyond</span>
-          </div>
-          <div className="space-y-3 shop-hero-piece">
-            <h2 className="text-4xl md:text-5xl font-heading font-semibold text-primary">
-              Shop the wardrobe
-            </h2>
-            <p className="text-lg text-foreground/80">
-              Ease through service, brunch, and the week with silhouettes that feel reverent and modern. Tap a look to
-              explore the details.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3" ref={gridRef}>
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3" ref={gridRef}>
           {displayedProducts.map((product) => {
             const showAltImage =
               hoveredProductId === product.productId &&

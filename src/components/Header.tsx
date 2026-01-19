@@ -1,30 +1,34 @@
 import { Link } from "react-router-dom";
 import MiniCart from "@/components/cart/MiniCart";
 import logo from "@/assets/logo.png";
+import PromoBanner from "@/components/PromoBanner";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 bg-background/5 backdrop-blur">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <img src={logo} alt="Allure Her" className="h-8 w-auto" />
-        </Link>
-        
-        <nav className="flex items-center gap-6">
-          <Link
-            to="/"
-            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-          >
-            Home
+    <header className="sticky top-0 z-50">
+      <PromoBanner />
+      <div className="bg-background/5 backdrop-blur">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2">
+            <img src={logo} alt="Allure Her" className="h-8 w-auto" />
           </Link>
-          <Link
-            to="/try-on"
-            className="text-sm font-medium text-foreground hover:text-primary transition-colors"
-          >
-            Try On
-          </Link>
-          <MiniCart />
-        </nav>
+          
+          <nav className="flex items-center gap-6">
+            <Link
+              to="/"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
+              Home
+            </Link>
+            <Link
+              to="/try-on"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
+              Try On
+            </Link>
+            <MiniCart />
+          </nav>
+        </div>
       </div>
     </header>
   );

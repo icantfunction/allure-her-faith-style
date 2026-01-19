@@ -29,6 +29,8 @@ export interface CheckoutParams {
   };
   shippingCostCents?: number;
   shippingCode?: string;
+  discountCode?: string;
+  discountPercent?: number;
   shippingAddress?: {
     name: string;
     line1: string;

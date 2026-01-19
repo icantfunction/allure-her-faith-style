@@ -8,19 +8,30 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, ShoppingBag, Trash2, Minus, Plus, Loader2, Truck, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import Header from "@/components/Header";
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { calculateShipping, ShippingQuote } from "@/lib/checkoutApi";
 import { SITE_ID } from "@/utils/siteId";
 import { useDebounce } from "@/hooks/useDebounce";
 import StripeEmbeddedCheckout, { CheckoutParams } from "@/components/checkout/StripeEmbeddedCheckout";
+import { useSiteConfig } from "@/contexts/SiteConfigContext";
+
+const parseDiscountPercent = (text?: string) => {
+  if (!text) return null;
+  const match = text.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (!match) return null;
+  const value = Number.parseFloat(match[1]);
+  if (!Number.isFinite(value)) return null;
+  return Math.min(100, Math.max(0, value));
+};
 
 export default function Checkout() {
   const SHIPPING_TEST_CODE = "DAVID-TEST";
   const SHIPPING_TEST_CENTS = 1;
-  const { items, totalPrice, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { items, removeFromCart, updateQuantity, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { banner } = useSiteConfig();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -44,6 +55,12 @@ export default function Checkout() {
   const [shippingCode, setShippingCode] = useState("");
   const [appliedShippingCode, setAppliedShippingCode] = useState<string | null>(null);
   const [shippingOverrideCents, setShippingOverrideCents] = useState<number | null>(null);
+  const [promoCode, setPromoCode] = useState("");
+  const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
+  const [appliedDiscountPercent, setAppliedDiscountPercent] = useState<number | null>(null);
+
+  const bannerDiscountCode = (banner.discountCode || "").trim().toUpperCase();
+  const bannerDiscountPercent = parseDiscountPercent(banner.text);
 
   // Calculate total quantity
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -109,20 +126,58 @@ export default function Checkout() {
     }
   }, [shippingError, toast]);
 
-  const subtotal = totalPrice;
-  const tax = subtotal * 0.08; // 8% tax
+  useEffect(() => {
+    if (
+      !banner.enabled ||
+      !bannerDiscountCode ||
+      !bannerDiscountPercent ||
+      (appliedPromoCode && appliedPromoCode !== bannerDiscountCode)
+    ) {
+      setAppliedPromoCode(null);
+      setAppliedDiscountPercent(null);
+    }
+  }, [banner.enabled, bannerDiscountCode, bannerDiscountPercent, appliedPromoCode]);
+
+  const subtotalCents = items.reduce((sum, item) => {
+    const unitAmount = Math.round(Number(item.price ?? 0) * 100);
+    return sum + unitAmount * item.quantity;
+  }, 0);
+  const discountPercent = appliedDiscountPercent ?? 0;
+  const discountMultiplier = discountPercent > 0 ? Math.max(0, 1 - discountPercent / 100) : 1;
+  const discountedLineItems = items.map((item) => {
+    const baseUnitAmount = Math.round(Number(item.price ?? 0) * 100);
+    const discountedUnitAmount = Math.max(0, Math.round(baseUnitAmount * discountMultiplier));
+    return {
+      quantity: item.quantity,
+      price_data: {
+        currency: "usd",
+        product_data: { name: item.size ? `${item.name} (${item.size})` : item.name },
+        unit_amount: discountedUnitAmount,
+      },
+    };
+  });
+  const discountedSubtotalCents = discountedLineItems.reduce(
+    (sum, item) => sum + item.price_data.unit_amount * item.quantity,
+    0
+  );
+  const discountCents = Math.max(0, subtotalCents - discountedSubtotalCents);
+  const subtotal = subtotalCents / 100;
+  const discount = discountCents / 100;
+  const discountedSubtotal = discountedSubtotalCents / 100;
+  const tax = discountedSubtotal * 0.08; // 8% tax
   
   // Use real shipping quote - no fallback, must have valid quote to proceed
   const baseShippingCents = shippingQuote ? shippingQuote.shippingAmountCents : 0;
   const effectiveShippingCents = shippingOverrideCents ?? baseShippingCents;
   const shippingCost = effectiveShippingCents / 100;
-  const total = subtotal + tax + shippingCost;
+  const total = discountedSubtotal + tax + shippingCost;
   
   // Address is complete when all required fields are filled
   const addressComplete = address && city && state && zip;
   
   // Can only proceed to payment when we have a valid shipping quote
   const canProceedToPayment = !!(shippingQuote && !shippingLoading && !shippingError);
+  const promoAvailable = banner.enabled && Boolean(bannerDiscountCode) && Boolean(bannerDiscountPercent);
 
   const handleCheckout = () => {
     if (!firstName || !lastName || !email || !address || !city || !state || !zip) {
@@ -144,14 +199,7 @@ export default function Checkout() {
     }
 
     // Build checkout params for embedded checkout
-    const lineItems = items.map((item) => ({
-      quantity: item.quantity,
-      price_data: {
-        currency: "usd",
-        product_data: { name: item.size ? `${item.name} (${item.size})` : item.name },
-        unit_amount: Math.round(Number(item.price ?? 0) * 100),
-      },
-    }));
+    const lineItems = discountedLineItems;
 
     const shippingAddress = {
       name: `${firstName} ${lastName}`.trim(),
@@ -173,6 +221,8 @@ export default function Checkout() {
         phone: phone || undefined,
       },
       shippingCode: appliedShippingCode || undefined,
+      discountCode: appliedPromoCode || undefined,
+      discountPercent: discountPercent > 0 ? discountPercent : undefined,
       shippingCostCents: shippingOverrideCents ?? shippingQuote.shippingAmountCents,
       shippingAddress,
       shippingQuote: {
@@ -220,6 +270,52 @@ export default function Checkout() {
     setAppliedShippingCode(null);
     setShippingOverrideCents(null);
     setShippingCode("");
+  };
+
+  const handleApplyPromoCode = () => {
+    const normalized = promoCode.trim().toUpperCase();
+    if (!normalized) {
+      toast({
+        title: "Enter a code",
+        description: "Please enter a promo code.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!banner.enabled || !bannerDiscountCode || !bannerDiscountPercent) {
+      toast({
+        title: "No active promo",
+        description: "There is no active promo code right now.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (normalized === bannerDiscountCode) {
+      setAppliedPromoCode(normalized);
+      setAppliedDiscountPercent(bannerDiscountPercent);
+      setPromoCode(normalized);
+      toast({
+        title: "Promo code applied",
+        description: `You're saving ${bannerDiscountPercent}% on your items.`,
+      });
+      return;
+    }
+
+    setAppliedPromoCode(null);
+    setAppliedDiscountPercent(null);
+    toast({
+      title: "Invalid code",
+      description: "That promo code is not valid.",
+      variant: "destructive",
+    });
+  };
+
+  const handleRemovePromoCode = () => {
+    setAppliedPromoCode(null);
+    setAppliedDiscountPercent(null);
+    setPromoCode("");
   };
 
   const handleBackToCart = () => {
@@ -497,6 +593,12 @@ export default function Checkout() {
                       <span className="text-muted-foreground">Subtotal ({totalQuantity} items)</span>
                       <span className="text-foreground">${subtotal.toFixed(2)}</span>
                     </div>
+                    {discountCents > 0 && appliedPromoCode && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Discount ({appliedPromoCode})</span>
+                        <span className="text-foreground">-${discount.toFixed(2)}</span>
+                      </div>
+                    )}
                     
                     {/* Shipping Section */}
                     <div className="flex justify-between text-sm">
@@ -541,6 +643,35 @@ export default function Checkout() {
                       {appliedShippingCode && (
                         <p className="text-xs text-muted-foreground">
                           Code {appliedShippingCode} applied. Shipping is $0.01.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="promoCode" className="text-xs text-muted-foreground">
+                        Promo Code
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="promoCode"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          placeholder={promoAvailable ? "Enter code" : "No promo available"}
+                          disabled={!promoAvailable}
+                        />
+                        {appliedPromoCode ? (
+                          <Button variant="outline" onClick={handleRemovePromoCode}>
+                            Remove
+                          </Button>
+                        ) : (
+                          <Button variant="outline" onClick={handleApplyPromoCode} disabled={!promoAvailable}>
+                            Apply
+                          </Button>
+                        )}
+                      </div>
+                      {appliedPromoCode && discountCents > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Code {appliedPromoCode} applied. You saved ${discount.toFixed(2)}.
                         </p>
                       )}
                     </div>

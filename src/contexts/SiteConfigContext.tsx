@@ -72,7 +72,11 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const popup = config?.popups || config?.popup || DEFAULT_POPUP;
-  const banner = config?.banner || DEFAULT_BANNER;
+  const banner =
+    (config as any)?.banner ||
+    (config as any)?.theme?.banner ||
+    (config as any)?.messages?.banner ||
+    DEFAULT_BANNER;
   const shop = config?.shop || DEFAULT_SHOP;
 
   return (

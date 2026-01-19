@@ -18,6 +18,8 @@ export default function Config() {
   // Theme colors
   const [primary, setPrimary] = React.useState("#3948AB");
   const [accent, setAccent] = React.useState("#FDB924");
+  const [themeExtras, setThemeExtras] = React.useState<Record<string, unknown>>({});
+  const [messageExtras, setMessageExtras] = React.useState<Record<string, unknown>>({});
   
   // Popup config
   const [popupEnabled, setPopupEnabled] = React.useState(false);
@@ -47,10 +49,22 @@ export default function Config() {
 
   // Helper function to update local state from config object
   const updateStateFromConfig = React.useCallback((config: Record<string, unknown>) => {
-    if (config.theme) {
-      const theme = config.theme as { primary?: string; accent?: string };
-      if (theme.primary) setPrimary(theme.primary);
-      if (theme.accent) setAccent(theme.accent);
+    if (config.theme && typeof config.theme === "object") {
+      const theme = config.theme as Record<string, unknown>;
+      const primaryValue = theme.primary;
+      const accentValue = theme.accent;
+      if (typeof primaryValue === "string") setPrimary(primaryValue);
+      if (typeof accentValue === "string") setAccent(accentValue);
+      const { primary: _primary, accent: _accent, ...rest } = theme;
+      setThemeExtras(rest);
+    } else {
+      setThemeExtras({});
+    }
+
+    if (config.messages && typeof config.messages === "object") {
+      setMessageExtras(config.messages as Record<string, unknown>);
+    } else {
+      setMessageExtras({});
     }
     
     // Prefer popups (new) over popup (deprecated)
@@ -71,9 +85,17 @@ export default function Config() {
       setPopupCtaUrl(popup.ctaUrl || "/#email-signup");
       setPopupDelaySeconds(popup.delaySeconds ?? 15);
     }
-    
-    if (config.banner) {
-      const banner = config.banner as {
+    const themeBanner =
+      config.theme && typeof config.theme === "object"
+        ? (config.theme as Record<string, any>).banner
+        : undefined;
+    const messagesBanner =
+      config.messages && typeof config.messages === "object"
+        ? (config.messages as Record<string, any>).banner
+        : undefined;
+    const bannerSource = config.banner || themeBanner || messagesBanner;
+    if (bannerSource) {
+      const banner = bannerSource as {
         enabled?: boolean;
         text?: string;
         discountCode?: string;
@@ -82,13 +104,13 @@ export default function Config() {
         textColor?: string;
       };
       setBannerEnabled(banner.enabled ?? false);
-      setBannerText(banner.text || "Up to 15% OFF • USE CODE: DINA");
+      setBannerText(banner.text || "Up to 15% OFF \u2022 USE CODE: DINA");
       setBannerDiscountCode(banner.discountCode || "DINA");
       setBannerLinkUrl(banner.linkUrl || "#");
       setBannerBackgroundColor(banner.backgroundColor || "#000000");
       setBannerTextColor(banner.textColor || "#ffffff");
     }
-    
+
     if (config.shop) {
       const shop = config.shop as { showViewAllButton?: boolean; showShopSection?: boolean };
       setShowViewAllButton(shop.showViewAllButton ?? true);
@@ -130,10 +152,28 @@ export default function Config() {
     setSaving(true);
     setSaved(false);
     try {
+      const bannerPayload = {
+        enabled: bannerEnabled,
+        text: bannerText,
+        discountCode: bannerDiscountCode,
+        linkUrl: bannerLinkUrl,
+        backgroundColor: bannerBackgroundColor,
+        textColor: bannerTextColor,
+      };
+      const themePayload = {
+        ...themeExtras,
+        primary,
+        accent,
+        banner: bannerPayload,
+      };
+      const messagesPayload = {
+        ...messageExtras,
+        banner: bannerPayload,
+      };
       await adminUpdateConfig({
-        theme: { primary, accent },
+        theme: themePayload,
         fonts: {},
-        messages: {},
+        messages: messagesPayload,
         popups: {
           enabled: popupEnabled,
           title: popupTitle,
@@ -142,14 +182,7 @@ export default function Config() {
           ctaUrl: popupCtaUrl,
           delaySeconds: popupDelaySeconds,
         },
-        banner: {
-          enabled: bannerEnabled,
-          text: bannerText,
-          discountCode: bannerDiscountCode,
-          linkUrl: bannerLinkUrl,
-          backgroundColor: bannerBackgroundColor,
-          textColor: bannerTextColor,
-        },
+        banner: bannerPayload,
         shop: {
           showShopSection,
           showViewAllButton,

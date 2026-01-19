@@ -72,11 +72,44 @@ export function SiteConfigProvider({ children }: { children: ReactNode }) {
   };
 
   const popup = config?.popups || config?.popup || DEFAULT_POPUP;
-  const banner =
-    (config as any)?.banner ||
-    (config as any)?.theme?.banner ||
-    (config as any)?.messages?.banner ||
-    DEFAULT_BANNER;
+  const getFlatBanner = (source?: Record<string, unknown>) => {
+    if (!source) return null;
+    const enabled = (source as Record<string, unknown>).bannerEnabled;
+    const textValue = (source as Record<string, unknown>).bannerText;
+    const discountCode = (source as Record<string, unknown>).bannerDiscountCode;
+    const linkUrl = (source as Record<string, unknown>).bannerLinkUrl;
+    const backgroundColor = (source as Record<string, unknown>).bannerBackgroundColor;
+    const textColor = (source as Record<string, unknown>).bannerTextColor;
+    const hasAny = [enabled, textValue, discountCode, linkUrl, backgroundColor, textColor].some(
+      (value) => value !== undefined && value !== null && value !== ""
+    );
+    if (!hasAny) return null;
+    return {
+      enabled: typeof enabled === "boolean" ? enabled : undefined,
+      text: typeof textValue === "string" ? textValue : undefined,
+      discountCode: typeof discountCode === "string" ? discountCode : undefined,
+      linkUrl: typeof linkUrl === "string" ? linkUrl : undefined,
+      backgroundColor: typeof backgroundColor === "string" ? backgroundColor : undefined,
+      textColor: typeof textColor === "string" ? textColor : undefined,
+    } as BannerConfig;
+  };
+  const hasBannerValues = (banner?: Record<string, unknown>) => {
+    if (!banner) return false;
+    return ["enabled", "text", "discountCode", "linkUrl", "backgroundColor", "textColor"].some(
+      (key) => {
+        const value = (banner as Record<string, unknown>)[key];
+        return value !== undefined && value !== null && value !== "";
+      }
+    );
+  };
+  const bannerCandidate = [
+    (config as any)?.banner,
+    (config as any)?.theme?.banner,
+    (config as any)?.messages?.banner,
+    getFlatBanner((config as any)?.theme),
+    getFlatBanner((config as any)?.messages),
+  ].find((candidate) => hasBannerValues(candidate as Record<string, unknown>));
+  const banner = (bannerCandidate as BannerConfig) || DEFAULT_BANNER;
   const shop = config?.shop || DEFAULT_SHOP;
 
   return (

@@ -85,15 +85,58 @@ export default function Config() {
       setPopupCtaUrl(popup.ctaUrl || "/#email-signup");
       setPopupDelaySeconds(popup.delaySeconds ?? 15);
     }
-    const themeBanner =
+    const themeRecord =
       config.theme && typeof config.theme === "object"
-        ? (config.theme as Record<string, any>).banner
+        ? (config.theme as Record<string, unknown>)
         : undefined;
-    const messagesBanner =
+    const messageRecord =
       config.messages && typeof config.messages === "object"
-        ? (config.messages as Record<string, any>).banner
+        ? (config.messages as Record<string, unknown>)
         : undefined;
-    const bannerSource = config.banner || themeBanner || messagesBanner;
+
+    const getFlatBanner = (source?: Record<string, unknown>) => {
+      if (!source) return null;
+      const enabled = (source as Record<string, unknown>).bannerEnabled;
+      const textValue = (source as Record<string, unknown>).bannerText;
+      const discountCode = (source as Record<string, unknown>).bannerDiscountCode;
+      const linkUrl = (source as Record<string, unknown>).bannerLinkUrl;
+      const backgroundColor = (source as Record<string, unknown>).bannerBackgroundColor;
+      const textColor = (source as Record<string, unknown>).bannerTextColor;
+      const hasAny = [enabled, textValue, discountCode, linkUrl, backgroundColor, textColor].some(
+        (value) => value !== undefined && value !== null && value !== ""
+      );
+      if (!hasAny) return null;
+      return {
+        enabled: typeof enabled === "boolean" ? enabled : undefined,
+        text: typeof textValue === "string" ? textValue : undefined,
+        discountCode: typeof discountCode === "string" ? discountCode : undefined,
+        linkUrl: typeof linkUrl === "string" ? linkUrl : undefined,
+        backgroundColor: typeof backgroundColor === "string" ? backgroundColor : undefined,
+        textColor: typeof textColor === "string" ? textColor : undefined,
+      };
+    };
+
+    const hasBannerValues = (banner?: Record<string, unknown>) => {
+      if (!banner) return false;
+      return ["enabled", "text", "discountCode", "linkUrl", "backgroundColor", "textColor"].some((key) => {
+        const value = (banner as Record<string, unknown>)[key];
+        return value !== undefined && value !== null && value !== "";
+      });
+    };
+
+    const themeBanner = themeRecord ? (themeRecord as Record<string, any>).banner : undefined;
+    const messagesBanner = messageRecord ? (messageRecord as Record<string, any>).banner : undefined;
+    const flatThemeBanner = getFlatBanner(themeRecord);
+    const flatMessagesBanner = getFlatBanner(messageRecord);
+
+    const bannerSource = [
+      config.banner,
+      themeBanner,
+      messagesBanner,
+      flatThemeBanner,
+      flatMessagesBanner,
+    ].find((candidate) => hasBannerValues(candidate as Record<string, unknown>));
+
     if (bannerSource) {
       const banner = bannerSource as {
         enabled?: boolean;
@@ -104,7 +147,7 @@ export default function Config() {
         textColor?: string;
       };
       setBannerEnabled(banner.enabled ?? false);
-      setBannerText(banner.text || "Up to 15% OFF \u2022 USE CODE: DINA");
+      setBannerText(banner.text || "Up to 15% OFF • USE CODE: DINA");
       setBannerDiscountCode(banner.discountCode || "DINA");
       setBannerLinkUrl(banner.linkUrl || "#");
       setBannerBackgroundColor(banner.backgroundColor || "#000000");
@@ -160,20 +203,24 @@ export default function Config() {
         backgroundColor: bannerBackgroundColor,
         textColor: bannerTextColor,
       };
+      const flatBannerPayload = {
+        bannerEnabled,
+        bannerText,
+        bannerDiscountCode,
+        bannerLinkUrl,
+        bannerBackgroundColor,
+        bannerTextColor,
+      };
       const themePayload = {
         ...themeExtras,
         primary,
         accent,
+        ...flatBannerPayload,
         banner: bannerPayload,
       };
-      const messagesPayload = {
-        ...messageExtras,
-        banner: bannerPayload,
-      };
-      await adminUpdateConfig({
+      const updatePayload: Parameters<typeof adminUpdateConfig>[0] = {
         theme: themePayload,
         fonts: {},
-        messages: messagesPayload,
         popups: {
           enabled: popupEnabled,
           title: popupTitle,
@@ -187,7 +234,15 @@ export default function Config() {
           showShopSection,
           showViewAllButton,
         },
-      });
+      };
+      if (Object.keys(messageExtras).length > 0) {
+        updatePayload.messages = {
+          ...messageExtras,
+          ...flatBannerPayload,
+          banner: bannerPayload,
+        };
+      }
+      await adminUpdateConfig(updatePayload);
       
       // Reload the config from the admin endpoint to ensure local state reflects persisted data
       const freshConfig = await getAdminConfig();

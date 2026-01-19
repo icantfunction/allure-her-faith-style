@@ -11,6 +11,7 @@ import AllProducts from "./pages/AllProducts";
 import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import VirtualTryOn from "./pages/VirtualTryOn";
+import ReturnPolicy from "./pages/ReturnPolicy";
 import AdminHome from "./pages/admin/Home";
 import AdminLogin from "./pages/admin/Login";
 import ForgotPassword from "./pages/admin/ForgotPassword";
@@ -41,6 +42,7 @@ const AppContent = () => {
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/checkout/success" element={<CheckoutSuccess />} />
       <Route path="/checkout/return" element={<CheckoutSuccess />} />
+      <Route path="/return-policy" element={<ReturnPolicy />} />
       <Route path="/try-on" element={<VirtualTryOn />} />
       <Route path="/unsubscribe" element={<Unsubscribe />} />
       <Route path="/admin/login" element={<AdminLogin />} />

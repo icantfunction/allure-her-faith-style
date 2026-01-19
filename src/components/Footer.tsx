@@ -1,4 +1,5 @@
 import { Instagram, Youtube, Music } from "lucide-react";
+import { Link } from "react-router-dom";
 import logo from "@/assets/logo.png";
 
 const Footer = () => {
@@ -55,7 +56,7 @@ const Footer = () => {
           <div className="flex space-x-6">
             <a href="#" className="hover:text-primary-foreground transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-primary-foreground transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-primary-foreground transition-colors">Return Policy</a>
+            <Link to="/return-policy" className="hover:text-primary-foreground transition-colors">Return Policy</Link>
           </div>
         </div>
       </div>

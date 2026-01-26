@@ -30,7 +30,8 @@ export const handler = async (event: any) => {
       returnUrl,
       currency = "usd",
       discountCode,
-      discountPercent
+      discountPercent,
+      cartId
     } = payload;
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -72,6 +73,7 @@ export const handler = async (event: any) => {
       metadata: {
         customerName: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),
         customerPhone: customer.phone || "",
+        ...(cartId ? { cartId: String(cartId) } : {}),
         ...(discountCode ? { discountCode: String(discountCode).trim().toUpperCase() } : {}),
         ...(Number.isFinite(discountPercent)
           ? { discountPercent: String(discountPercent) }
@@ -92,9 +94,32 @@ export const handler = async (event: any) => {
     };
 
     // Create session (with optional Connect account)
-    const session = connectAccount
-      ? await stripe.checkout.sessions.create(sessionParams, { stripeAccount: connectAccount })
-      : await stripe.checkout.sessions.create(sessionParams);
+    let session;
+    try {
+      session = connectAccount
+        ? await stripe.checkout.sessions.create(sessionParams, { stripeAccount: connectAccount })
+        : await stripe.checkout.sessions.create(sessionParams);
+    } catch (error: any) {
+      const message = error?.message || "";
+      const param = error?.param || "";
+      const code = error?.code || "";
+      const looksLikePaymentTypeIssue =
+        param === "payment_method_types" ||
+        /payment_method_types/i.test(message) ||
+        /payment method/i.test(message) ||
+        /payment_method/i.test(code);
+
+      if (!looksLikePaymentTypeIssue) {
+        throw error;
+      }
+
+      const fallbackParams = { ...sessionParams };
+      delete (fallbackParams as any).payment_method_types;
+
+      session = connectAccount
+        ? await stripe.checkout.sessions.create(fallbackParams, { stripeAccount: connectAccount })
+        : await stripe.checkout.sessions.create(fallbackParams);
+    }
 
     return {
       statusCode: 200,

@@ -6,23 +6,26 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useEffect } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { confirmCheckoutSession } from "@/api/checkout";
+import { getCartId, resetCartId } from "@/lib/checkoutContact";
 
 const CheckoutSuccess = () => {
   const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const cartId = getCartId();
   const { clearCart } = useCart();
 
   // Clear cart on successful checkout
   useEffect(() => {
     clearCart();
+    resetCartId();
   }, [clearCart]);
 
   useEffect(() => {
     if (!sessionId) return;
-    confirmCheckoutSession(sessionId).catch((error) => {
+    confirmCheckoutSession(sessionId, cartId).catch((error) => {
       console.warn("Checkout confirmation failed:", error);
     });
-  }, [sessionId]);
+  }, [cartId, sessionId]);
 
   return (
     <div className="min-h-screen bg-background">

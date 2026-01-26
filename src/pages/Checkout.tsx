@@ -1,5 +1,5 @@
 import { useCart } from "@/contexts/CartContext";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import { SITE_ID } from "@/utils/siteId";
 import { useDebounce } from "@/hooks/useDebounce";
 import StripeEmbeddedCheckout, { CheckoutParams } from "@/components/checkout/StripeEmbeddedCheckout";
 import { useSiteConfig } from "@/contexts/SiteConfigContext";
+import { fetchAbandonedCart } from "@/api/abandonedCart";
+import { getCartId, getStoredContact, setCartId, setStoredContact } from "@/lib/checkoutContact";
 
 const parseDiscountPercent = (text?: string) => {
   if (!text) return null;
@@ -26,10 +28,13 @@ const parseDiscountPercent = (text?: string) => {
 };
 
 export default function Checkout() {
-  const SHIPPING_TEST_CODE = "DAVID-TEST";
+  const SHIPPING_TEST_CODE = import.meta.env.VITE_TEST_SHIPPING_CODE || "";
   const SHIPPING_TEST_CENTS = 1;
-  const { items, removeFromCart, updateQuantity, clearCart } = useCart();
+  const allowTestShippingCode = import.meta.env.VITE_ENABLE_TEST_SHIPPING_CODE === "true";
+  const { items, removeFromCart, updateQuantity, setCartItems } = useCart();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const recoveryCartId = searchParams.get("cartId");
   const { toast } = useToast();
   const { banner } = useSiteConfig();
   const [firstName, setFirstName] = useState("");
@@ -114,6 +119,59 @@ export default function Checkout() {
   useEffect(() => {
     fetchShipping();
   }, [fetchShipping]);
+
+  useEffect(() => {
+    let active = true;
+
+    const hydrateFromRecovery = async () => {
+      if (!recoveryCartId && items.length === 0) {
+        return;
+      }
+      if (recoveryCartId) {
+        try {
+          const recovered = await fetchAbandonedCart(SITE_ID, recoveryCartId);
+          if (!active || !recovered) return;
+          if (recovered.items && recovered.items.length) {
+            setCartItems(recovered.items);
+          }
+          if (recovered.email && recovered.firstName && recovered.lastName) {
+            const contact = setStoredContact({
+              email: recovered.email,
+              firstName: recovered.firstName,
+              lastName: recovered.lastName,
+            });
+            setFirstName(contact.firstName);
+            setLastName(contact.lastName);
+            setEmail(contact.email);
+          }
+          setCartId(recoveryCartId);
+        } catch (error: any) {
+          if (active) {
+            toast({
+              title: "We could not restore your cart",
+              description: "Please review your items before checkout.",
+            });
+          }
+        }
+      }
+
+      const stored = getStoredContact();
+      if (!stored?.email || !stored?.firstName || !stored?.lastName) {
+        if (active) navigate("/checkout/contact");
+        return;
+      }
+      if (active) {
+        setFirstName(stored.firstName);
+        setLastName(stored.lastName);
+        setEmail(stored.email);
+      }
+    };
+
+    hydrateFromRecovery();
+    return () => {
+      active = false;
+    };
+  }, [items.length, navigate, recoveryCartId, setCartItems, toast]);
 
   // Show toast when shipping calculation fails
   useEffect(() => {
@@ -200,6 +258,7 @@ export default function Checkout() {
 
     // Build checkout params for embedded checkout
     const lineItems = discountedLineItems;
+    const cartId = getCartId();
 
     const shippingAddress = {
       name: `${firstName} ${lastName}`.trim(),
@@ -212,6 +271,7 @@ export default function Checkout() {
     };
 
     setCheckoutParams({
+      cartId,
       lineItems,
       siteId: SITE_ID,
       customer: {
@@ -246,7 +306,7 @@ export default function Checkout() {
       return;
     }
 
-    if (normalized === SHIPPING_TEST_CODE) {
+    if (allowTestShippingCode && SHIPPING_TEST_CODE && normalized === SHIPPING_TEST_CODE) {
       setAppliedShippingCode(SHIPPING_TEST_CODE);
       setShippingOverrideCents(SHIPPING_TEST_CENTS);
       setShippingCode(SHIPPING_TEST_CODE);
@@ -520,6 +580,36 @@ export default function Checkout() {
               </Card>
             </motion.div>
 
+            {/* Contact Information */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <Card className="border-border shadow-luxury">
+                <CardHeader>
+                  <CardTitle className="font-heading">Contact</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Name</p>
+                      <p className="text-foreground font-medium">
+                        {firstName} {lastName}
+                      </p>
+                    </div>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/checkout/contact">Edit</Link>
+                    </Button>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Email</p>
+                    <p className="text-foreground font-medium">{email}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Shipping Information */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -531,20 +621,6 @@ export default function Checkout() {
                   <CardTitle className="font-heading">Shipping Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="phone">Phone</Label>
                     <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
@@ -619,33 +695,35 @@ export default function Checkout() {
                       </span>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="shippingCode" className="text-xs text-muted-foreground">
-                        Shipping Code
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="shippingCode"
-                          value={shippingCode}
-                          onChange={(e) => setShippingCode(e.target.value)}
-                          placeholder="Enter code"
-                        />
-                        {appliedShippingCode ? (
-                          <Button variant="outline" onClick={handleRemoveShippingCode}>
-                            Remove
-                          </Button>
-                        ) : (
-                          <Button variant="outline" onClick={handleApplyShippingCode}>
-                            Apply
-                          </Button>
+                    {allowTestShippingCode && (
+                      <div className="space-y-2">
+                        <Label htmlFor="shippingCode" className="text-xs text-muted-foreground">
+                          Shipping Code
+                        </Label>
+                        <div className="flex gap-2">
+                          <Input
+                            id="shippingCode"
+                            value={shippingCode}
+                            onChange={(e) => setShippingCode(e.target.value)}
+                            placeholder="Enter code"
+                          />
+                          {appliedShippingCode ? (
+                            <Button variant="outline" onClick={handleRemoveShippingCode}>
+                              Remove
+                            </Button>
+                          ) : (
+                            <Button variant="outline" onClick={handleApplyShippingCode}>
+                              Apply
+                            </Button>
+                          )}
+                        </div>
+                        {appliedShippingCode && (
+                          <p className="text-xs text-muted-foreground">
+                            Code {appliedShippingCode} applied. Shipping is $0.01.
+                          </p>
                         )}
                       </div>
-                      {appliedShippingCode && (
-                        <p className="text-xs text-muted-foreground">
-                          Code {appliedShippingCode} applied. Shipping is $0.01.
-                        </p>
-                      )}
-                    </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="promoCode" className="text-xs text-muted-foreground">

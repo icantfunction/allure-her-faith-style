@@ -55,6 +55,7 @@ export type CheckoutShippingPayload = {
 };
 
 export type CreateCheckoutPayload = {
+  cartId?: string;
   lineItems: StripeLineItem[];
   mode?: string;
   siteId: string;
@@ -87,7 +88,7 @@ export const createCheckoutSession = async (payload: CreateCheckoutPayload) => {
   return (await res.json()) as CheckoutSessionResponse;
 };
 
-export const confirmCheckoutSession = async (sessionId: string) => {
+export const confirmCheckoutSession = async (sessionId: string, cartId?: string) => {
   if (!sessionId) {
     throw new Error("Missing sessionId");
   }
@@ -98,7 +99,7 @@ export const confirmCheckoutSession = async (sessionId: string) => {
     headers: { "Content-Type": "application/json" },
     credentials: "omit",
     mode: "cors",
-    body: JSON.stringify({ sessionId }),
+    body: JSON.stringify({ sessionId, cartId }),
   });
 
   if (!res.ok) {

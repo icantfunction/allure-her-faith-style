@@ -8,8 +8,8 @@ import {
 
 const db = new DynamoDBClient({});
 
-const SUB_TABLE  = process.env.EMAIL_SUB_TABLE;        // EmailSubscribers
-const CAMP_TABLE = process.env.EMAIL_CAMPAIGNS_TABLE;  // EmailCampaigns
+const SUB_TABLE  = process.env.EMAIL_SUB_TABLE || process.env.SUBSCRIBERS_TABLE || "EmailSubscribers";
+const CAMP_TABLE = process.env.EMAIL_CAMPAIGNS_TABLE || process.env.CAMPAIGNS_TABLE || "EmailCampaigns";
 const SITE_ALLOWED = process.env.SITE_ID_ALLOWED || "";
 
 const J = (c,b)=>({
@@ -39,6 +39,7 @@ const isAdmin = (evt) => {
 // POST /public/email/subscribe
 // body: { siteId, email, source? }
 export const subscribe = async (evt)=>{
+  if (!SUB_TABLE) return J(500,{error:"email_sub_table_not_configured"});
   let body = {};
   try {
     body = JSON.parse(evt.body || "{}");
@@ -78,6 +79,7 @@ export const subscribe = async (evt)=>{
 // GET /admin/email/subscribers?siteId=my-site&limit=50&nextToken=BASE64
 export const listSubscribers = async (evt)=>{
   if (!isAdmin(evt)) return J(403,{error:"forbidden"});
+  if (!SUB_TABLE) return J(500,{error:"email_sub_table_not_configured"});
 
   const qs = evt.queryStringParameters || {};
   const siteId = qs.siteId;
@@ -137,6 +139,7 @@ export const listSubscribers = async (evt)=>{
 // body: { siteId, name, subject, bodyHtml?, bodyText?, scheduledAt? }
 export const createCampaign = async (evt)=>{
   if (!isAdmin(evt)) return J(403,{error:"forbidden"});
+  if (!CAMP_TABLE) return J(500,{error:"email_campaigns_table_not_configured"});
   let body = {};
   try {
     body = JSON.parse(evt.body || "{}");
@@ -200,6 +203,7 @@ export const createCampaign = async (evt)=>{
 // GET /admin/email/campaigns?siteId=my-site
 export const listCampaigns = async (evt)=>{
   if (!isAdmin(evt)) return J(403,{error:"forbidden"});
+  if (!CAMP_TABLE) return J(500,{error:"email_campaigns_table_not_configured"});
 
   const qs = evt.queryStringParameters || {};
   const siteId = qs.siteId;

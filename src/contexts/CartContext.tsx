@@ -1,4 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { syncAbandonedCart } from "@/api/abandonedCart";
+import { getCartId, getStoredContact } from "@/lib/checkoutContact";
+import { SITE_ID } from "@/utils/siteId";
 
 export interface CartItem {
   productId: string;
@@ -14,6 +17,7 @@ interface CartContextValue {
   addToCart: (product: { productId: string; name: string; price: number; imageUrl?: string; size?: string }, quantity?: number) => void;
   removeFromCart: (productId: string, size?: string) => void;
   updateQuantity: (productId: string, size: string | undefined, quantity: number) => void;
+  setCartItems: (items: CartItem[]) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -29,6 +33,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(items));
+    if (!items.length) return;
+    const contact = getStoredContact();
+    if (!contact?.email) return;
+    syncAbandonedCart({
+      siteId: SITE_ID,
+      cartId: getCartId(),
+      items,
+      email: contact.email,
+      firstName: contact.firstName,
+      lastName: contact.lastName,
+      source: "cart",
+    }).catch(() => {
+      // best-effort sync; ignore failures
+    });
   }, [items]);
 
   const addToCart = (
@@ -68,6 +86,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const setCartItems = (next: CartItem[]) => setItems(next);
+
   const clearCart = () => setItems([]);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -80,6 +100,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         addToCart,
         removeFromCart,
         updateQuantity,
+        setCartItems,
         clearCart,
         totalItems,
         totalPrice,

@@ -12,6 +12,7 @@ const stripePromise = loadStripe(
 );
 
 export interface CheckoutParams {
+  cartId?: string;
   lineItems: Array<{
     quantity: number;
     price_data: {
@@ -84,7 +85,7 @@ export default function StripeEmbeddedCheckout({
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.error || `Checkout failed (${res.status})`);
+        throw new Error(data?.message || data?.error || `Checkout failed (${res.status})`);
       }
 
       const clientSecret = data?.clientSecret || data?.client_secret;

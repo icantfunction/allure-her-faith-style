@@ -8,6 +8,9 @@ const ddb = new AWS.DynamoDB.DocumentClient();
 const ses = new AWS.SES({ region: process.env.AWS_REGION || "us-east-1" });
 
 const ORDERS_TABLE = process.env.ORDERS_TABLE_NAME || "Orders";
+const ABANDONED_CARTS_TABLE = process.env.ABANDONED_CARTS_TABLE || "AbandonedCarts";
+const ALLOW_TEST_SHIPPING_CODE = process.env.ALLOW_TEST_SHIPPING_CODE === "true";
+const TEST_SHIPPING_CODE = (process.env.TEST_SHIPPING_CODE || "DAVID-TEST").trim().toUpperCase();
 const ORDER_WEIGHT_OZ = Number(process.env.ORDER_WEIGHT_OZ || "15");
 const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS || "hello@shopallureher.com";
 
@@ -96,6 +99,27 @@ async function retrievePaymentIntent(stripe, paymentIntentId, stripeAccount) {
       );
     }
     throw err;
+  }
+}
+
+async function createCheckoutSessionSafe(stripe, args) {
+  try {
+    return await stripe.checkout.sessions.create(args);
+  } catch (err) {
+    const message = err?.message || "";
+    const param = err?.param || "";
+    const code = err?.code || "";
+    const looksLikePaymentTypeIssue =
+      param === "payment_method_types" ||
+      /payment_method_types/i.test(message) ||
+      /payment method/i.test(message) ||
+      /payment_method/i.test(code);
+
+    if (!looksLikePaymentTypeIssue) throw err;
+
+    const fallback = { ...args };
+    delete fallback.payment_method_types; // let Stripe pick the account defaults
+    return await stripe.checkout.sessions.create(fallback);
   }
 }
 
@@ -305,6 +329,7 @@ async function handleConfirm(body) {
   const totalWeight = items.reduce((sum, item) => sum + (item.weight || 0) * item.quantity, 0);
 
   const metadata = session.metadata || {};
+  const cartId = body?.cartId || metadata.cartId || null;
   let metadataShippingAddress = null;
   if (typeof metadata.shippingAddress === "string") {
     try {
@@ -400,16 +425,35 @@ async function handleConfirm(body) {
 
   await sendConfirmationEmail(order);
 
+  const confirmationIso = new Date().toISOString();
   await ddb.update({
     TableName: ORDERS_TABLE,
     Key: { orderId: order.orderId },
     UpdateExpression: "SET confirmationSentAt = :ts, confirmationEmail = :em, updatedAt = :u",
     ExpressionAttributeValues: {
-      ":ts": new Date().toISOString(),
+      ":ts": confirmationIso,
       ":em": order.email,
-      ":u": new Date().toISOString(),
+      ":u": confirmationIso,
     },
   }).promise();
+
+  if (cartId) {
+    try {
+      await ddb.update({
+        TableName: ABANDONED_CARTS_TABLE,
+        Key: { siteId: order.siteId, cartId },
+        UpdateExpression: "SET #status = :status, convertedAt = :ts, updatedAt = :u",
+        ExpressionAttributeNames: { "#status": "status" },
+        ExpressionAttributeValues: {
+          ":status": "converted",
+          ":ts": confirmationIso,
+          ":u": confirmationIso,
+        },
+      }).promise();
+    } catch (err) {
+      console.warn("abandoned_cart_update_failed", err?.message || err);
+    }
+  }
 
   return { statusCode: 200, body: { confirmed: true, orderId: order.orderId } };
 }
@@ -464,7 +508,10 @@ export const handler = async (event) => {
 
     const rawShippingCode = typeof body.shippingCode === "string" ? body.shippingCode : "";
     const normalizedShippingCode = rawShippingCode.trim().toUpperCase();
-    const shippingCodeValid = normalizedShippingCode === "DAVID-TEST";
+    const shippingCodeValid =
+      ALLOW_TEST_SHIPPING_CODE &&
+      normalizedShippingCode &&
+      normalizedShippingCode === TEST_SHIPPING_CODE;
     const shippingCostCents = shippingCodeValid ? 1 : Number(body.shippingCostCents);
     const rawDiscountCode = typeof body.discountCode === "string" ? body.discountCode : "";
     const normalizedDiscountCode = rawDiscountCode.trim().toUpperCase();
@@ -542,6 +589,7 @@ export const handler = async (event) => {
     const stripe = await getStripe();
 
     const metadata = { siteId };
+    if (body.cartId) metadata.cartId = String(body.cartId);
     if (body.shippingQuote?.carrier) metadata.shippingCarrier = body.shippingQuote.carrier;
     if (body.shippingQuote?.service) metadata.shippingService = body.shippingQuote.service;
     if (body.shippingQuote?.service) metadata.shippingMethod = body.shippingQuote.service;
@@ -577,7 +625,7 @@ export const handler = async (event) => {
         : { success_url, cancel_url }),
     };
 
-    const session = await stripe.checkout.sessions.create(createArgs);
+    const session = await createCheckoutSessionSafe(stripe, createArgs);
 
     const payload =
       uiMode === "embedded"

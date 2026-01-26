@@ -13,7 +13,7 @@ export default function MiniCart() {
       variant="ghost"
       size="sm"
       className="relative"
-      onClick={() => navigate("/checkout")}
+      onClick={() => navigate("/checkout/contact")}
     >
       <ShoppingCart className="h-5 w-5" />
       {totalItems > 0 && (

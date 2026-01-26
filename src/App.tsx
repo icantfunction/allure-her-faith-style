@@ -9,6 +9,7 @@ import Unsubscribe from "./pages/Unsubscribe";
 import ProductDetail from "./pages/ProductDetail";
 import AllProducts from "./pages/AllProducts";
 import Checkout from "./pages/Checkout";
+import CheckoutContact from "./pages/CheckoutContact";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 import VirtualTryOn from "./pages/VirtualTryOn";
 import ReturnPolicy from "./pages/ReturnPolicy";
@@ -39,6 +40,7 @@ const AppContent = () => {
       <Route path="/" element={<Index />} />
       <Route path="/product/:productId" element={<ProductDetail />} />
       <Route path="/products" element={<AllProducts />} />
+      <Route path="/checkout/contact" element={<CheckoutContact />} />
       <Route path="/checkout" element={<Checkout />} />
       <Route path="/checkout/success" element={<CheckoutSuccess />} />
       <Route path="/checkout/return" element={<CheckoutSuccess />} />

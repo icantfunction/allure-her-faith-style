@@ -148,6 +148,7 @@ export const subscribe = async (evt) => {
   if (deny) return deny;
 
   if (!email) return J(400, { error: "email required" });
+  const normalizedEmail = email.trim().toLowerCase();
 
   const now = new Date().toISOString();
   const payload = {
@@ -198,13 +199,33 @@ export const unsubscribe = async (evt) => {
         TableName: SUBSCRIBERS_TABLE,
         Key: {
           siteId: { S: siteId },
-          email: { S: email }
-        }
-      })
-    );
+        email: { S: normalizedEmail }
+      }
+    })
+  );
 
     if (!res.Item || !res.Item.payload?.S) {
-      // nothing to do, but still return 204 so the link "just works"
+      const now = new Date().toISOString();
+      const payload = {
+        siteId,
+        email: normalizedEmail,
+        status: "unsubscribed",
+        source: "unsubscribe",
+        createdAt: now,
+        updatedAt: now
+      };
+
+      await db.send(
+        new PutItemCommand({
+          TableName: SUBSCRIBERS_TABLE,
+          Item: {
+            siteId: { S: siteId },
+            email: { S: normalizedEmail },
+            payload: { S: JSON.stringify(payload) }
+          }
+        })
+      );
+
       return J(204, null);
     }
 
@@ -212,7 +233,7 @@ export const unsubscribe = async (evt) => {
     try {
       payload = JSON.parse(res.Item.payload.S);
     } catch {
-      payload = { siteId, email };
+      payload = { siteId, email: normalizedEmail };
     }
 
     payload.status = "unsubscribed";
@@ -223,7 +244,7 @@ export const unsubscribe = async (evt) => {
         TableName: SUBSCRIBERS_TABLE,
         Item: {
           siteId: { S: siteId },
-          email: { S: email },
+          email: { S: normalizedEmail },
           payload: { S: JSON.stringify(payload) }
         }
       })

@@ -97,6 +97,7 @@ export type StripeLineItem = {
 export type CheckoutMode = "hosted" | "embedded";
 
 export async function createCheckoutSession(input: {
+  cartId?: string;
   lineItems: StripeLineItem[];
   mode: "payment" | "subscription";
   siteId: string;
@@ -141,7 +142,7 @@ export async function createCheckoutSession(input: {
     });
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data?.error || `Checkout failed (${res.status})`);
+    if (!res.ok) throw new Error(data?.message || data?.error || `Checkout failed (${res.status})`);
 
     // For embedded mode, expect clientSecret; for hosted, expect url
     if (uiMode === "embedded") {

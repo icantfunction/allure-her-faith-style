@@ -505,6 +505,16 @@ export const handler = async (event) => {
             },
           ];
 
+    const currency = line_items?.[0]?.price_data?.currency || "usd";
+    const normalizedCurrency = String(currency || "usd").toLowerCase();
+    const payment_method_types = ["card", "link"];
+    if (normalizedCurrency === "usd") {
+      payment_method_types.push("affirm", "cashapp", "klarna");
+    }
+    if (normalizedCurrency === "eur") {
+      payment_method_types.push("klarna", "eps");
+    }
+
     const origin =
       event?.headers?.origin || event?.headers?.Origin || "https://shopallureher.com";
 
@@ -559,6 +569,7 @@ export const handler = async (event) => {
       billing_address_collection: body.billing_address_collection || "auto",
       shipping_address_collection,
       shipping_options,
+      payment_method_types,
       payment_intent_data,
       metadata,
       ...(uiMode === "embedded"

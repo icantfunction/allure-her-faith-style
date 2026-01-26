@@ -50,6 +50,15 @@ export const handler = async (event: any) => {
       quantity: item.quantity || 1,
     }));
 
+    const normalizedCurrency = String(currency || "usd").toLowerCase();
+    const paymentMethodTypes = ["card", "link"];
+    if (normalizedCurrency === "usd") {
+      paymentMethodTypes.push("affirm", "cashapp", "klarna");
+    }
+    if (normalizedCurrency === "eur") {
+      paymentMethodTypes.push("klarna", "eps");
+    }
+
     // Determine origin for return/success URLs
     const origin = event.headers?.origin || event.headers?.Origin || "https://shopallureher.com";
     const isEmbedded = uiMode === "embedded";
@@ -58,6 +67,7 @@ export const handler = async (event: any) => {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       mode: "payment",
       line_items: lineItems,
+      payment_method_types: paymentMethodTypes,
       customer_email: customer.email || undefined,
       metadata: {
         customerName: `${customer.firstName || ""} ${customer.lastName || ""}`.trim(),

@@ -13,6 +13,10 @@ const ALLOW_TEST_SHIPPING_CODE = process.env.ALLOW_TEST_SHIPPING_CODE === "true"
 const TEST_SHIPPING_CODE = (process.env.TEST_SHIPPING_CODE || "DAVID-TEST").trim().toUpperCase();
 const ORDER_WEIGHT_OZ = Number(process.env.ORDER_WEIGHT_OZ || "15");
 const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS || "hello@shopallureher.com";
+const ORDER_NOTIFICATION_EMAILS = (process.env.ORDER_NOTIFICATION_EMAILS || "info@shopallureher.com")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 let stripeClient = null;
 async function getStripe() {
@@ -300,6 +304,146 @@ async function sendConfirmationEmail(order) {
     .promise();
 }
 
+async function sendAdminOrderEmail(order) {
+  if (!ORDER_NOTIFICATION_EMAILS.length) return;
+
+  const itemsText = (order.items || [])
+    .map((item) => `- ${item.quantity} x ${item.name}`)
+    .join("\n");
+
+  const address = order.shippingAddress || {};
+  const addressLines = [
+    address.line1,
+    address.line2,
+    [address.city, address.state, address.postal_code].filter(Boolean).join(", "),
+    address.country || "US",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const subject = `New order ${order.orderId}`;
+  const textBody = `New order received\n\nOrder ID: ${order.orderId}\nCustomer: ${
+    order.customerName || "Customer"
+  }\nEmail: ${order.email || "N/A"}\nPhone: ${order.phone || "N/A"}\n\nItems:\n${itemsText}\n\nSubtotal: ${formatCurrency(
+    Math.round((order.subtotal || 0) * 100),
+    order.currency
+  )}\nShipping: ${formatCurrency(
+    Math.round((order.shippingCost || 0) * 100),
+    order.currency
+  )}\nTax: ${formatCurrency(
+    Math.round((order.taxAmount || 0) * 100),
+    order.currency
+  )}\nTotal: ${formatCurrency(
+    Math.round((order.total || 0) * 100),
+    order.currency
+  )}\n\nShipping to:\n${addressLines}\n`;
+
+  const itemsHtml = (order.items || [])
+    .map(
+      (item) => `
+        <tr>
+          <td style="padding:8px 0;border-bottom:1px solid #eee;">
+            <strong>${item.name}</strong><br />
+            <span style="color:#666;">Qty: ${item.quantity}</span>
+          </td>
+          <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;">
+            ${formatCurrency(Math.round((item.price || 0) * 100), order.currency)}
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+
+  const htmlBody = `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>New order</title>
+      </head>
+      <body style="margin:0;background:#f6f2ec;font-family: 'Georgia','Times New Roman',serif;color:#111;">
+        <div style="padding:24px;">
+          <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #ece6df;">
+            <div style="padding:20px;background:#111;color:#fff;text-align:center;">
+              <div style="font-size:18px;letter-spacing:1px;text-transform:uppercase;">Allure Her</div>
+              <div style="margin-top:6px;font-size:13px;color:#d6c7b8;">New order received</div>
+            </div>
+            <div style="padding:24px;">
+              <p style="margin:0 0 12px;"><strong>Order ID:</strong> ${order.orderId}</p>
+              <p style="margin:0 0 12px;"><strong>Customer:</strong> ${order.customerName || "Customer"}</p>
+              <p style="margin:0 0 12px;"><strong>Email:</strong> ${order.email || "N/A"}</p>
+              <p style="margin:0 0 18px;"><strong>Phone:</strong> ${order.phone || "N/A"}</p>
+
+              <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left;padding-bottom:6px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:1px;">Item</th>
+                    <th style="text-align:right;padding-bottom:6px;font-size:12px;color:#666;text-transform:uppercase;letter-spacing:1px;">Price</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+              </table>
+
+              <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
+                <tbody>
+                  <tr>
+                    <td style="padding:4px 0;color:#666;">Subtotal</td>
+                    <td style="padding:4px 0;text-align:right;">${formatCurrency(
+                      Math.round((order.subtotal || 0) * 100),
+                      order.currency
+                    )}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#666;">Shipping</td>
+                    <td style="padding:4px 0;text-align:right;">${formatCurrency(
+                      Math.round((order.shippingCost || 0) * 100),
+                      order.currency
+                    )}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:#666;">Tax</td>
+                    <td style="padding:4px 0;text-align:right;">${formatCurrency(
+                      Math.round((order.taxAmount || 0) * 100),
+                      order.currency
+                    )}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top:10px;font-weight:700;border-top:1px solid #eee;">Total</td>
+                    <td style="padding-top:10px;font-weight:700;text-align:right;border-top:1px solid #eee;">
+                      ${formatCurrency(Math.round((order.total || 0) * 100), order.currency)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style="padding:12px 14px;border:1px solid #eee;border-radius:10px;background:#faf8f5;">
+                <div style="font-size:12px;color:#666;text-transform:uppercase;letter-spacing:1px;">Shipping to</div>
+                <div style="margin-top:6px;white-space:pre-line;color:#333;">${addressLines}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  await ses
+    .sendEmail({
+      Source: SES_FROM_ADDRESS,
+      Destination: { ToAddresses: ORDER_NOTIFICATION_EMAILS },
+      Message: {
+        Subject: { Data: subject },
+        Body: {
+          Text: { Data: textBody },
+          Html: { Data: htmlBody },
+        },
+      },
+    })
+    .promise();
+}
 async function handleConfirm(body) {
   const sessionId = body?.sessionId;
   if (!sessionId) {
@@ -424,6 +568,11 @@ async function handleConfirm(body) {
   await ddb.put({ TableName: ORDERS_TABLE, Item: merged }).promise();
 
   await sendConfirmationEmail(order);
+  try {
+    await sendAdminOrderEmail(order);
+  } catch (err) {
+    console.warn("admin_order_email_failed", err?.message || err);
+  }
 
   const confirmationIso = new Date().toISOString();
   await ddb.update({

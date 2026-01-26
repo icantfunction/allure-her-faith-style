@@ -113,6 +113,14 @@ async function createCheckoutSessionSafe(stripe, args) {
     const message = err?.message || "";
     const param = err?.param || "";
     const code = err?.code || "";
+    const isTransferCapabilityIssue =
+      code === "insufficient_capabilities_for_transfer" ||
+      /stripe_transfers/i.test(message);
+    if (isTransferCapabilityIssue && args?.payment_intent_data) {
+      const fallback = { ...args };
+      delete fallback.payment_intent_data; // fall back to a direct charge
+      return await stripe.checkout.sessions.create(fallback);
+    }
     const looksLikePaymentTypeIssue =
       param === "payment_method_types" ||
       /payment_method_types/i.test(message) ||

@@ -57,6 +57,38 @@ async function getStripe() {
   return stripeClient;
 }
 
+const STRIPE_CAPABILITY_CACHE_TTL_MS = 10 * 60 * 1000;
+const stripeCapabilityCache = new Map();
+
+async function getStripeTransferCapability(stripe, stripeAccount) {
+  if (!stripeAccount) return "disabled";
+
+  const cached = stripeCapabilityCache.get(stripeAccount);
+  if (cached && Date.now() - cached.checkedAt < STRIPE_CAPABILITY_CACHE_TTL_MS) {
+    return cached.status;
+  }
+
+  try {
+    const account = await stripe.accounts.retrieve(stripeAccount);
+    const capabilities = account?.capabilities || {};
+    const status =
+      capabilities.transfers ||
+      capabilities.stripe_transfers ||
+      capabilities?.stripe_balance?.stripe_transfers;
+    const normalized = status === "active" ? "active" : "inactive";
+    stripeCapabilityCache.set(stripeAccount, { status: normalized, checkedAt: Date.now() });
+    return normalized;
+  } catch (err) {
+    console.error("stripe_capability_check_error", {
+      message: err?.message,
+      code: err?.code,
+      type: err?.type,
+    });
+    stripeCapabilityCache.set(stripeAccount, { status: "unknown", checkedAt: Date.now() });
+    return "unknown";
+  }
+}
+
 async function retrieveCheckoutSession(stripe, sessionId, stripeAccount) {
   try {
     return await stripe.checkout.sessions.retrieve(sessionId);
@@ -733,17 +765,19 @@ export const handler = async (event) => {
       body.returnUrl || process.env.STRIPE_RETURN_URL || (origin + "/checkout/return")
     );
 
+    const stripe = await getStripe();
     const stripeAccount =
       body.stripeAccount || process.env.STRIPE_CONNECT_ACCOUNT_ID || undefined;
-
-    const payment_intent_data = stripeAccount
-      ? {
+    let payment_intent_data;
+    if (stripeAccount) {
+      const transferCapability = await getStripeTransferCapability(stripe, stripeAccount);
+      if (transferCapability === "active") {
+        payment_intent_data = {
           on_behalf_of: stripeAccount,
           transfer_data: { destination: stripeAccount },
-        }
-      : undefined;
-
-    const stripe = await getStripe();
+        };
+      }
+    }
 
     const metadata = { siteId };
     if (body.cartId) metadata.cartId = String(body.cartId);

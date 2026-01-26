@@ -60,8 +60,12 @@ async function getStripe() {
 const STRIPE_CAPABILITY_CACHE_TTL_MS = 10 * 60 * 1000;
 const stripeCapabilityCache = new Map();
 
-async function getStripeTransferCapability(stripe, stripeAccount) {
-  if (!stripeAccount) return "disabled";
+function normalizeCapability(status) {
+  return status === "active" ? "active" : "inactive";
+}
+
+async function getStripeCapabilities(stripe, stripeAccount) {
+  if (!stripeAccount) return { transfers: "inactive", card_payments: "inactive" };
 
   const cached = stripeCapabilityCache.get(stripeAccount);
   if (cached && Date.now() - cached.checkedAt < STRIPE_CAPABILITY_CACHE_TTL_MS) {
@@ -71,21 +75,26 @@ async function getStripeTransferCapability(stripe, stripeAccount) {
   try {
     const account = await stripe.accounts.retrieve(stripeAccount);
     const capabilities = account?.capabilities || {};
-    const status =
+    const transfersRaw =
       capabilities.transfers ||
       capabilities.stripe_transfers ||
       capabilities?.stripe_balance?.stripe_transfers;
-    const normalized = status === "active" ? "active" : "inactive";
-    stripeCapabilityCache.set(stripeAccount, { status: normalized, checkedAt: Date.now() });
-    return normalized;
+    const cardPaymentsRaw = capabilities.card_payments;
+    const status = {
+      transfers: normalizeCapability(transfersRaw),
+      card_payments: normalizeCapability(cardPaymentsRaw),
+    };
+    stripeCapabilityCache.set(stripeAccount, { status, checkedAt: Date.now() });
+    return status;
   } catch (err) {
     console.error("stripe_capability_check_error", {
       message: err?.message,
       code: err?.code,
       type: err?.type,
     });
-    stripeCapabilityCache.set(stripeAccount, { status: "unknown", checkedAt: Date.now() });
-    return "unknown";
+    const status = { transfers: "unknown", card_payments: "unknown" };
+    stripeCapabilityCache.set(stripeAccount, { status, checkedAt: Date.now() });
+    return status;
   }
 }
 
@@ -138,9 +147,12 @@ async function retrievePaymentIntent(stripe, paymentIntentId, stripeAccount) {
   }
 }
 
-async function createCheckoutSessionSafe(stripe, args) {
+async function createCheckoutSessionSafe(stripe, args, stripeAccount, allowPlatformFallback = true) {
   try {
-    return await stripe.checkout.sessions.create(args);
+    return await stripe.checkout.sessions.create(
+      args,
+      stripeAccount ? { stripeAccount } : undefined
+    );
   } catch (err) {
     const message = err?.message || "";
     const param = err?.param || "";
@@ -149,9 +161,13 @@ async function createCheckoutSessionSafe(stripe, args) {
       code === "insufficient_capabilities_for_transfer" ||
       /stripe_transfers/i.test(message);
     if (isTransferCapabilityIssue && args?.payment_intent_data) {
+      if (!allowPlatformFallback) throw err;
       const fallback = { ...args };
       delete fallback.payment_intent_data; // fall back to a direct charge
-      return await stripe.checkout.sessions.create(fallback);
+      return await stripe.checkout.sessions.create(
+        fallback,
+        stripeAccount ? { stripeAccount } : undefined
+      );
     }
     const looksLikePaymentTypeIssue =
       param === "payment_method_types" ||
@@ -163,7 +179,10 @@ async function createCheckoutSessionSafe(stripe, args) {
 
     const fallback = { ...args };
     delete fallback.payment_method_types; // let Stripe pick the account defaults
-    return await stripe.checkout.sessions.create(fallback);
+    return await stripe.checkout.sessions.create(
+      fallback,
+      stripeAccount ? { stripeAccount } : undefined
+    );
   }
 }
 
@@ -769,12 +788,22 @@ export const handler = async (event) => {
     const stripeAccount =
       body.stripeAccount || process.env.STRIPE_CONNECT_ACCOUNT_ID || undefined;
     let payment_intent_data;
+    let stripeAccountForCheckout;
     if (stripeAccount) {
-      const transferCapability = await getStripeTransferCapability(stripe, stripeAccount);
-      if (transferCapability === "active") {
-        payment_intent_data = {
-          on_behalf_of: stripeAccount,
-          transfer_data: { destination: stripeAccount },
+      const capabilities = await getStripeCapabilities(stripe, stripeAccount);
+      const cardPaymentsActive = capabilities.card_payments === "active";
+
+      if (cardPaymentsActive) {
+        stripeAccountForCheckout = stripeAccount;
+      } else {
+        return {
+          statusCode: 409,
+          headers: { ...cors, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            error: "stripe_account_not_ready",
+            message:
+              "Connected Stripe account is not ready for direct charges. Enable card payments on the connected account.",
+          }),
         };
       }
     }
@@ -816,7 +845,13 @@ export const handler = async (event) => {
         : { success_url, cancel_url }),
     };
 
-    const session = await createCheckoutSessionSafe(stripe, createArgs);
+    const allowPlatformFallback = !stripeAccount;
+    const session = await createCheckoutSessionSafe(
+      stripe,
+      createArgs,
+      stripeAccountForCheckout,
+      allowPlatformFallback
+    );
 
     const payload =
       uiMode === "embedded"

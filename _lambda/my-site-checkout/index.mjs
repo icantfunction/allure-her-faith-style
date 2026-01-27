@@ -18,6 +18,18 @@ const ORDER_NOTIFICATION_EMAILS = (process.env.ORDER_NOTIFICATION_EMAILS || "inf
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
 
+const REQUIRED_STRIPE_CONNECT_ACCOUNT_ID = (process.env.STRIPE_CONNECT_ACCOUNT_ID || "acct_1STE3oPZ7B5XZHFj").trim();
+
+function resolveStripeAccount(bodyStripeAccount) {
+  if (!REQUIRED_STRIPE_CONNECT_ACCOUNT_ID) {
+    return { error: "stripe_connect_account_missing" };
+  }
+  if (bodyStripeAccount && bodyStripeAccount !== REQUIRED_STRIPE_CONNECT_ACCOUNT_ID) {
+    return { error: "stripe_connect_account_mismatch" };
+  }
+  return { account: REQUIRED_STRIPE_CONNECT_ACCOUNT_ID };
+}
+
 let stripeClient = null;
 async function getStripe() {
   if (stripeClient) return stripeClient;
@@ -510,7 +522,11 @@ async function handleConfirm(body) {
   }
 
   const stripe = await getStripe();
-  const stripeAccount = body?.stripeAccount || process.env.STRIPE_CONNECT_ACCOUNT_ID || undefined;
+  const resolvedAccount = resolveStripeAccount(body?.stripeAccount);
+  if (resolvedAccount.error) {
+    return { statusCode: 400, body: { error: resolvedAccount.error } };
+  }
+  const stripeAccount = resolvedAccount.account;
   const session = await retrieveCheckoutSession(stripe, sessionId, stripeAccount);
 
   if (!session || session.payment_status !== "paid") {
@@ -785,8 +801,15 @@ export const handler = async (event) => {
     );
 
     const stripe = await getStripe();
-    const stripeAccount =
-      body.stripeAccount || process.env.STRIPE_CONNECT_ACCOUNT_ID || undefined;
+    const resolvedAccount = resolveStripeAccount(body?.stripeAccount);
+    if (resolvedAccount.error) {
+      return {
+        statusCode: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
+        body: JSON.stringify({ error: resolvedAccount.error }),
+      };
+    }
+    const stripeAccount = resolvedAccount.account;
     let payment_intent_data;
     let stripeAccountForCheckout;
     if (stripeAccount) {

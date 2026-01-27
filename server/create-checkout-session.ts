@@ -2,10 +2,10 @@ import Stripe from "stripe";
 
 // AWS Lambda-style handler for Stripe Checkout Sessions (embedded or hosted).
 // Env:
-// STRIPE_SECRET_KEY, STRIPE_CONNECT_ACCOUNT_ID (optional)
+// STRIPE_SECRET_KEY, STRIPE_CONNECT_ACCOUNT_ID (required for connected charges)
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
-const connectAccount = process.env.STRIPE_CONNECT_ACCOUNT_ID;
+const connectAccount = (process.env.STRIPE_CONNECT_ACCOUNT_ID || "acct_1STE3oPZ7B5XZHFj").trim();
 
 const stripe = new Stripe(stripeSecret || "", {
   apiVersion: "2024-11-20",

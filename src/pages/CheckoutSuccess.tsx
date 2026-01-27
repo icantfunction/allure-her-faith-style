@@ -10,7 +10,8 @@ import { getCartId, resetCartId } from "@/lib/checkoutContact";
 
 const CheckoutSuccess = () => {
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session_id");
+  const storedSessionId = window.sessionStorage.getItem("checkout_session_id");
+  const sessionId = searchParams.get("session_id") || storedSessionId;
   const cartId = getCartId();
   const { clearCart } = useCart();
 
@@ -22,7 +23,13 @@ const CheckoutSuccess = () => {
 
   useEffect(() => {
     if (!sessionId) return;
-    confirmCheckoutSession(sessionId, cartId).catch((error) => {
+    confirmCheckoutSession(sessionId, cartId)
+      .then(() => {
+        if (storedSessionId) {
+          window.sessionStorage.removeItem("checkout_session_id");
+        }
+      })
+      .catch((error) => {
       console.warn("Checkout confirmation failed:", error);
     });
   }, [cartId, sessionId]);

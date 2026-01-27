@@ -59,6 +59,8 @@ const CHECKOUT_ENDPOINT =
   import.meta.env.VITE_CHECKOUT_ENDPOINT ??
   "https://d1pqkh0r4pj29.cloudfront.net/admin/checkout/create-session";
 
+const CHECKOUT_SESSION_ID_KEY = "checkout_session_id";
+
 export default function StripeEmbeddedCheckout({
   checkoutParams,
   onComplete,
@@ -86,6 +88,10 @@ export default function StripeEmbeddedCheckout({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data?.message || data?.error || `Checkout failed (${res.status})`);
+      }
+
+      if (data?.id) {
+        window.sessionStorage.setItem(CHECKOUT_SESSION_ID_KEY, String(data.id));
       }
 
       const clientSecret = data?.clientSecret || data?.client_secret;

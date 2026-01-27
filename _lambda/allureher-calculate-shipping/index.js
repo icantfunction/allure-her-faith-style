@@ -23,6 +23,33 @@ function httpGetJson(url, apiKey) {
   });
 }
 
+function httpRequestJson(method, url, apiKey, body) {
+  return new Promise((resolve, reject) => {
+    const payload = body ? JSON.stringify(body) : null;
+    const headers = {
+      "Authorization": "Basic " + Buffer.from(apiKey + ":").toString("base64"),
+    };
+    if (payload) {
+      headers["Content-Type"] = "application/json";
+      headers["Content-Length"] = Buffer.byteLength(payload);
+    }
+    const req = https_ep.request(url, { method, headers }, (res) => {
+      let data = "";
+      res.on("data", (c) => (data += c));
+      res.on("end", () => {
+        try {
+          resolve({ statusCode: res.statusCode || 0, json: JSON.parse(data || "{}") });
+        } catch (e) {
+          reject(new Error("Failed to parse JSON from EasyPost"));
+        }
+      });
+    });
+    req.on("error", reject);
+    if (payload) req.write(payload);
+    req.end();
+  });
+}
+
 async function ensureEasyPostKey() {
   if (process.env.EASYPOST_API_KEY) return;
 
@@ -49,8 +76,6 @@ async function ensureEasyPostKey() {
   }
 }
 // ---- end bootstrap ----
-
-const EasyPost = require('@easypost/api');
 
 const allowedOrigins = new Set([
   "https://shopallureher.com",
@@ -109,8 +134,6 @@ console.log('Incoming event:', JSON.stringify(event));
   if (!apiKey) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: 'Server misconfigured' }) };
   }
-
-  const api = new EasyPost(apiKey);
   
   // 1. Calculate Weight (15oz per item)
   const qty = quantity || 1;
@@ -121,33 +144,53 @@ console.log('Incoming event:', JSON.stringify(event));
   const boxHeight = 4 * qty; 
 
   try {
-    const shipment = await api.Shipment.create({
-      to_address: {
-        name: address.name,
-        street1: address.line1,
-        street2: address.line2 || '',
-        city: address.city,
-        state: address.state,
-        zip: address.postal_code,
-        country: address.country || 'US',
-      },
-      from_address: {
-        company: 'Allure Her',
-        street1: '3210 N University Dr',
-        street2: 'APT 825',
-        city: 'Coral Springs',
-        state: 'FL',
-        zip: '33065',
-        country: 'US',
-        phone: process.env.FROM_PHONE || '555-555-5555',
-      },
-      parcel: {
-        weight: totalWeight,
-        length: 6,
-        width: 4,
-        height: boxHeight, // Dynamic height triggers different pricing tiers
-      },
-    });
+    const shipmentResp = await httpRequestJson(
+      "POST",
+      "https://api.easypost.com/v2/shipments",
+      apiKey,
+      {
+        shipment: {
+          to_address: {
+            name: address.name,
+            street1: address.line1,
+            street2: address.line2 || '',
+            city: address.city,
+            state: address.state,
+            zip: address.postal_code,
+            country: address.country || 'US',
+          },
+          from_address: {
+            company: 'Allure Her',
+            street1: '3210 N University Dr',
+            street2: 'APT 825',
+            city: 'Coral Springs',
+            state: 'FL',
+            zip: '33065',
+            country: 'US',
+            phone: process.env.FROM_PHONE || '555-555-5555',
+          },
+          parcel: {
+            weight: totalWeight,
+            length: 6,
+            width: 4,
+            height: boxHeight, // Dynamic height triggers different pricing tiers
+          },
+        },
+      }
+    );
+
+    if (shipmentResp.statusCode >= 400) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Failed to calculate shipping',
+          details: shipmentResp.json && shipmentResp.json.error ? shipmentResp.json.error.message || shipmentResp.json.error : shipmentResp.json,
+        }),
+      };
+    }
+
+    const shipment = shipmentResp.json;
 
     if (!shipment.rates || shipment.rates.length === 0) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'No shipping rates available' }) };

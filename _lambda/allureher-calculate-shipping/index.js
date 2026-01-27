@@ -196,15 +196,15 @@ console.log('Incoming event:', JSON.stringify(event));
       return { statusCode: 500, headers, body: JSON.stringify({ error: 'No shipping rates available' }) };
     }
 
-    // Rates only — never buy labels here. FedEx rates only for Shop Allure Her.
+    // Rates only — never buy labels here. Prefer UPS -> USPS -> cheapest.
     const normalize = (s) => (s || '').toUpperCase();
-    const fedexRates = shipment.rates.filter(r => normalize(r.carrier).includes('FEDEX'));
+    const upsRates = shipment.rates.filter(r => normalize(r.carrier).includes('UPS'));
+    const uspsRates = shipment.rates.filter(r => normalize(r.carrier) === 'USPS');
 
-    if (fedexRates.length === 0) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: 'No FedEx rates available' }) };
-    }
-
-    const candidateRates = fedexRates;
+    let candidateRates;
+    if (upsRates.length > 0) candidateRates = upsRates;
+    else if (uspsRates.length > 0) candidateRates = uspsRates;
+    else candidateRates = shipment.rates;
 
     const lowestRate = candidateRates.reduce((prev, curr) =>
       parseFloat(prev.rate) < parseFloat(curr.rate) ? prev : curr

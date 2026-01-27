@@ -172,6 +172,47 @@ async function getStripe() {
   return stripeClient;
 }
 
+let stripeWebhookSecret = null;
+async function getStripeWebhookSecret() {
+  if (stripeWebhookSecret) return stripeWebhookSecret;
+  if (process.env.STRIPE_WEBHOOK_SECRET) {
+    stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    return stripeWebhookSecret;
+  }
+
+  const secretId =
+    process.env.STRIPE_WEBHOOK_SECRET_ARN ||
+    process.env.STRIPE_WEBHOOK_SECRET_ID ||
+    null;
+
+  if (!secretId) {
+    throw new Error("Stripe webhook secret not configured");
+  }
+
+  const sv = await sm.getSecretValue({ SecretId: secretId }).promise();
+  let raw =
+    sv.SecretString ||
+    (sv.SecretBinary ? Buffer.from(sv.SecretBinary, "base64").toString("utf8") : null);
+
+  if (!raw) throw new Error("Stripe webhook secret not found");
+
+  try {
+    const obj = JSON.parse(raw);
+    stripeWebhookSecret =
+      obj["stripe-webhook-secret"] ||
+      obj["stripe_webhook_secret"] ||
+      obj["STRIPE_WEBHOOK_SECRET"] ||
+      raw;
+  } catch {
+    stripeWebhookSecret = raw;
+  }
+
+  if (!stripeWebhookSecret || !stripeWebhookSecret.startsWith("whsec_")) {
+    throw new Error("Stripe webhook secret invalid format");
+  }
+  return stripeWebhookSecret;
+}
+
 const STRIPE_CAPABILITY_CACHE_TTL_MS = 10 * 60 * 1000;
 const stripeCapabilityCache = new Map();
 
@@ -317,6 +358,23 @@ function corsHeaders(event) {
     "Access-Control-Allow-Headers": "content-type,authorization",
     "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
   };
+}
+
+function getHeader(headers, name) {
+  if (!headers) return undefined;
+  const target = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === target) return value;
+  }
+  return undefined;
+}
+
+function getRawBody(event) {
+  const body = event?.body || "";
+  if (event?.isBase64Encoded) {
+    return Buffer.from(body, "base64").toString("utf8");
+  }
+  return body;
 }
 
 function withSessionId(url) {
@@ -628,24 +686,12 @@ async function sendAdminOrderEmail(order) {
     })
     .promise();
 }
-async function handleConfirm(body) {
-  const sessionId = body?.sessionId;
-  if (!sessionId) {
-    return { statusCode: 400, body: { error: "sessionId required" } };
-  }
-
-  const stripe = await getStripe();
-  const resolvedAccount = resolveStripeAccount(body?.stripeAccount);
-  if (resolvedAccount.error) {
-    return { statusCode: 400, body: { error: resolvedAccount.error } };
-  }
-  const stripeAccount = resolvedAccount.account;
-  const session = await retrieveCheckoutSession(stripe, sessionId, stripeAccount);
-
+async function buildAndStoreOrder({ stripe, session, stripeAccount, body }) {
   if (!session || session.payment_status !== "paid") {
     return { statusCode: 409, body: { error: "payment_not_confirmed" } };
   }
 
+  const sessionId = session.id;
   const lineItems = await listCheckoutLineItems(stripe, sessionId, stripeAccount);
   const items = (lineItems.data || []).map((item) => {
     const unitAmount = item.price?.unit_amount ?? (item.amount_total ? item.amount_total / item.quantity : 0);
@@ -715,7 +761,7 @@ async function handleConfirm(body) {
   }
 
   const order = {
-    orderId: session.id,
+    orderId: sessionId,
     siteId: session.metadata?.siteId || body?.siteId || process.env.SITE_ID_DEFAULT || "my-site",
     customerName:
       session.customer_details?.name ||
@@ -840,6 +886,23 @@ async function handleConfirm(body) {
   return { statusCode: 200, body: { confirmed: true, orderId: order.orderId, alreadyConfirmed } };
 }
 
+async function handleConfirm(body) {
+  const sessionId = body?.sessionId;
+  if (!sessionId) {
+    return { statusCode: 400, body: { error: "sessionId required" } };
+  }
+
+  const stripe = await getStripe();
+  const resolvedAccount = resolveStripeAccount(body?.stripeAccount);
+  if (resolvedAccount.error) {
+    return { statusCode: 400, body: { error: resolvedAccount.error } };
+  }
+  const stripeAccount = resolvedAccount.account;
+  const session = await retrieveCheckoutSession(stripe, sessionId, stripeAccount);
+
+  return await buildAndStoreOrder({ stripe, session, stripeAccount, body });
+}
+
 export const handler = async (event) => {
   const cors = corsHeaders(event);
   const method = (event?.requestContext?.http?.method || "").toUpperCase();
@@ -858,6 +921,67 @@ export const handler = async (event) => {
   const DEBUG = process.env.DEBUG === "true";
 
   try {
+    if (method === "POST" && path === "/public/checkout/webhook") {
+      const rawBody = getRawBody(event);
+      const signature = getHeader(event.headers, "stripe-signature");
+      if (!signature) {
+        return {
+          statusCode: 400,
+          headers: { ...cors, "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "missing_stripe_signature" }),
+        };
+      }
+
+      let stripeEvent;
+      try {
+        const stripe = await getStripe();
+        const webhookSecret = await getStripeWebhookSecret();
+        stripeEvent = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+      } catch (err) {
+        console.warn("stripe_webhook_signature_failed", err?.message || err);
+        return {
+          statusCode: 400,
+          headers: { ...cors, "Content-Type": "application/json" },
+          body: JSON.stringify({ error: "invalid_signature" }),
+        };
+      }
+
+      const eventType = stripeEvent?.type;
+      if (
+        eventType === "checkout.session.completed" ||
+        eventType === "checkout.session.async_payment_succeeded"
+      ) {
+        const session = stripeEvent.data?.object;
+        const stripeAccountHeader = stripeEvent.account || getHeader(event.headers, "stripe-account");
+        const resolvedAccount = resolveStripeAccount(stripeAccountHeader);
+        if (resolvedAccount.error) {
+          console.warn("stripe_webhook_account_mismatch", resolvedAccount.error);
+          return {
+            statusCode: 200,
+            headers: { ...cors, "Content-Type": "application/json" },
+            body: JSON.stringify({ received: true, ignored: true }),
+          };
+        }
+        try {
+          const stripe = await getStripe();
+          await buildAndStoreOrder({
+            stripe,
+            session,
+            stripeAccount: resolvedAccount.account,
+            body: { siteId: session?.metadata?.siteId },
+          });
+        } catch (err) {
+          console.error("stripe_webhook_order_error", err?.message || err);
+        }
+      }
+
+      return {
+        statusCode: 200,
+        headers: { ...cors, "Content-Type": "application/json" },
+        body: JSON.stringify({ received: true }),
+      };
+    }
+
     const body =
       typeof event?.body === "string"
         ? JSON.parse(event.body || "{}")

@@ -18,6 +18,109 @@ const ORDER_NOTIFICATION_EMAILS = (process.env.ORDER_NOTIFICATION_EMAILS || "inf
   .map((email) => email.trim().toLowerCase())
   .filter(Boolean);
 
+const EMAIL_LOCK_TTL_MS = 15 * 60 * 1000;
+
+function getIsoNow() {
+  return new Date().toISOString();
+}
+
+async function tryAcquireEmailLock(orderId, lockField, sentField) {
+  const nowIso = getIsoNow();
+  const staleIso = new Date(Date.now() - EMAIL_LOCK_TTL_MS).toISOString();
+  try {
+    await ddb.update({
+      TableName: ORDERS_TABLE,
+      Key: { orderId },
+      UpdateExpression: "SET #lockAt = :now, updatedAt = :u",
+      ConditionExpression:
+        "attribute_not_exists(#sentAt) AND (attribute_not_exists(#lockAt) OR #lockAt < :stale)",
+      ExpressionAttributeNames: {
+        "#lockAt": lockField,
+        "#sentAt": sentField,
+      },
+      ExpressionAttributeValues: {
+        ":now": nowIso,
+        ":stale": staleIso,
+        ":u": nowIso,
+      },
+    }).promise();
+    return { acquired: true, nowIso };
+  } catch (err) {
+    if (err?.code === "ConditionalCheckFailedException") {
+      return { acquired: false };
+    }
+    throw err;
+  }
+}
+
+async function markEmailSent(orderId, lockField, sentField, emailField, emailValue) {
+  const nowIso = getIsoNow();
+  const update = {
+    TableName: ORDERS_TABLE,
+    Key: { orderId },
+    UpdateExpression: "SET #sentAt = :now, updatedAt = :u REMOVE #lockAt",
+    ExpressionAttributeNames: {
+      "#sentAt": sentField,
+      "#lockAt": lockField,
+    },
+    ExpressionAttributeValues: {
+      ":now": nowIso,
+      ":u": nowIso,
+    },
+  };
+  if (emailField) {
+    update.UpdateExpression = "SET #sentAt = :now, #email = :email, updatedAt = :u REMOVE #lockAt";
+    update.ExpressionAttributeNames["#email"] = emailField;
+    update.ExpressionAttributeValues[":email"] = emailValue;
+  }
+  await ddb.update(update).promise();
+}
+
+async function markEmailFailed(orderId, lockField, errorField, errorValue) {
+  const nowIso = getIsoNow();
+  await ddb.update({
+    TableName: ORDERS_TABLE,
+    Key: { orderId },
+    UpdateExpression: "SET #error = :err, updatedAt = :u REMOVE #lockAt",
+    ExpressionAttributeNames: {
+      "#error": errorField,
+      "#lockAt": lockField,
+    },
+    ExpressionAttributeValues: {
+      ":err": errorValue || "unknown_error",
+      ":u": nowIso,
+    },
+  }).promise();
+}
+
+function buildUpdateExpressionFromObject(item, excludeKeys = []) {
+  const ExpressionAttributeNames = {};
+  const ExpressionAttributeValues = {};
+  const sets = [];
+  let index = 0;
+  for (const [key, value] of Object.entries(item || {})) {
+    if (excludeKeys.includes(key) || value === undefined) continue;
+    const nameKey = `#k${index}`;
+    const valueKey = `:v${index}`;
+    ExpressionAttributeNames[nameKey] = key;
+    ExpressionAttributeValues[valueKey] = value;
+    sets.push(`${nameKey} = ${valueKey}`);
+    index += 1;
+  }
+  if (!sets.length) {
+    return {
+      UpdateExpression: "SET #updatedAt = :u",
+      ExpressionAttributeNames: { "#updatedAt": "updatedAt" },
+      ExpressionAttributeValues: { ":u": getIsoNow() },
+    };
+  }
+  return {
+    UpdateExpression: `SET ${sets.join(", ")}`,
+    ExpressionAttributeNames,
+    ExpressionAttributeValues,
+  };
+}
+
 const REQUIRED_STRIPE_CONNECT_ACCOUNT_ID = (process.env.STRIPE_CONNECT_ACCOUNT_ID || "acct_1STE3oPZ7B5XZHFj").trim();
 
 function resolveStripeAccount(bodyStripeAccount) {
@@ -263,6 +366,7 @@ async function sendConfirmationEmail(order) {
 
   const address = order.shippingAddress || {};
   const addressLines = [
+    address.name || order.customerName,
     address.line1,
     address.line2,
     [address.city, address.state, address.postal_code].filter(Boolean).join(", "),
@@ -286,7 +390,7 @@ async function sendConfirmationEmail(order) {
   )}\nTotal: ${formatCurrency(
     Math.round((order.total || 0) * 100),
     order.currency
-  )}\n\nShipping to:\n${addressLines}\n\nWe'll send tracking details once your order ships.\n\nWith love,\nAllure Her`;
+  )}\n\nShipping to:\n${addressLines}\n\nContact:\nEmail: ${order.email || "N/A"}\nPhone: ${order.phone || "N/A"}\n\nWe'll send tracking details once your order ships.\n\nWith love,\nAllure Her`;
 
   const htmlBody = `
     <!doctype html>
@@ -351,6 +455,14 @@ async function sendConfirmationEmail(order) {
                 <div style="margin-top:6px; white-space:pre-line; color:#333;">${addressLines}</div>
               </div>
 
+              <div style="padding:14px 16px; border:1px solid #eee; border-radius:12px; background:#faf8f5; margin-top:12px;">
+                <div style="font-size:12px; color:#666; text-transform:uppercase; letter-spacing:1px;">Contact</div>
+                <div style="margin-top:6px; color:#333;">
+                  <div>Email: ${order.email || "N/A"}</div>
+                  <div>Phone: ${order.phone || "N/A"}</div>
+                </div>
+              </div>
+
               <p style="margin:18px 0 0; color:#444;">We will email tracking details once your order ships.</p>
               <p style="margin:8px 0 0; color:#444;">With love,<br />Allure Her</p>
             </div>
@@ -384,6 +496,7 @@ async function sendAdminOrderEmail(order) {
 
   const address = order.shippingAddress || {};
   const addressLines = [
+    address.name || order.customerName,
     address.line1,
     address.line2,
     [address.city, address.state, address.postal_code].filter(Boolean).join(", "),
@@ -635,34 +748,76 @@ async function handleConfirm(body) {
   };
 
   const existing = await ddb.get({ TableName: ORDERS_TABLE, Key: { orderId: order.orderId } }).promise();
-  if (existing.Item?.confirmationSentAt) {
-    return { statusCode: 200, body: { alreadyConfirmed: true, orderId: order.orderId } };
-  }
+  const existingItem = existing.Item || {};
 
-  const merged = { ...(existing.Item || {}), ...order };
-  await ddb.put({ TableName: ORDERS_TABLE, Item: merged }).promise();
-
-  await sendConfirmationEmail(order);
-  try {
-    await sendAdminOrderEmail(order);
-  } catch (err) {
-    console.warn("admin_order_email_failed", err?.message || err);
-  }
-
-  const confirmationIso = new Date().toISOString();
+  const orderUpdate = buildUpdateExpressionFromObject(order, ["orderId"]);
   await ddb.update({
     TableName: ORDERS_TABLE,
     Key: { orderId: order.orderId },
-    UpdateExpression: "SET confirmationSentAt = :ts, confirmationEmail = :em, updatedAt = :u",
-    ExpressionAttributeValues: {
-      ":ts": confirmationIso,
-      ":em": order.email,
-      ":u": confirmationIso,
-    },
+    ...orderUpdate,
   }).promise();
+
+  if (!order.email) {
+    console.warn("confirmation_email_missing", { orderId: order.orderId });
+  } else {
+    const customerLock = await tryAcquireEmailLock(
+      order.orderId,
+      "confirmationEmailLockAt",
+      "confirmationSentAt"
+    );
+    if (customerLock.acquired) {
+      try {
+        await sendConfirmationEmail(order);
+        await markEmailSent(
+          order.orderId,
+          "confirmationEmailLockAt",
+          "confirmationSentAt",
+          "confirmationEmail",
+          order.email
+        );
+      } catch (err) {
+        console.warn("customer_confirmation_email_failed", err?.message || err);
+        await markEmailFailed(
+          order.orderId,
+          "confirmationEmailLockAt",
+          "confirmationEmailError",
+          err?.message || "send_failed"
+        );
+      }
+    }
+  }
+
+  if (ORDER_NOTIFICATION_EMAILS.length) {
+    const adminLock = await tryAcquireEmailLock(
+      order.orderId,
+      "adminConfirmationEmailLockAt",
+      "adminConfirmationSentAt"
+    );
+    if (adminLock.acquired) {
+      try {
+        await sendAdminOrderEmail(order);
+        await markEmailSent(
+          order.orderId,
+          "adminConfirmationEmailLockAt",
+          "adminConfirmationSentAt",
+          "adminConfirmationEmail",
+          ORDER_NOTIFICATION_EMAILS.join(",")
+        );
+      } catch (err) {
+        console.warn("admin_order_email_failed", err?.message || err);
+        await markEmailFailed(
+          order.orderId,
+          "adminConfirmationEmailLockAt",
+          "adminConfirmationEmailError",
+          err?.message || "send_failed"
+        );
+      }
+    }
+  }
 
   if (cartId) {
     try {
+      const confirmationIso = getIsoNow();
       await ddb.update({
         TableName: ABANDONED_CARTS_TABLE,
         Key: { siteId: order.siteId, cartId },
@@ -679,7 +834,10 @@ async function handleConfirm(body) {
     }
   }
 
-  return { statusCode: 200, body: { confirmed: true, orderId: order.orderId } };
+  const alreadyConfirmed =
+    !!existingItem.confirmationSentAt && !!existingItem.adminConfirmationSentAt;
+
+  return { statusCode: 200, body: { confirmed: true, orderId: order.orderId, alreadyConfirmed } };
 }
 
 export const handler = async (event) => {

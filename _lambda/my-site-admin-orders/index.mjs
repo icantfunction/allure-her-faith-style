@@ -23,9 +23,12 @@ const toBool=(v)=> String(v).toLowerCase()==='true';
 async function listOrders(q){
   const siteId = q.siteId || SITE_ID_DEFAULT;
   const status = q.status;
+  const method = q.method;
   const hasLabel = q.hasLabel; // 'true'/'false'
   const limit = Math.min(parseInt(q.limit||'50',10), 200);
   const search = q.q;
+  const from = q.from;
+  const to = q.to;
 
   // Scan + Filter (simple + monolithic)
   const params = {
@@ -53,6 +56,12 @@ async function listOrders(q){
     values[':st'] = status;
   }
 
+  if (method){
+    filterParts.push('#sm = :sm');
+    names['#sm'] = 'shippingMethod';
+    values[':sm'] = method;
+  }
+
   if (hasLabel === 'true' || hasLabel === 'false'){
     const exists = hasLabel === 'true';
     filterParts.push(
@@ -60,6 +69,18 @@ async function listOrders(q){
         ? '(attribute_exists(trackingId) OR attribute_exists(trackingCode))'
         : '(attribute_not_exists(trackingId) AND attribute_not_exists(trackingCode))'
     );
+  }
+
+  if (from || to) {
+    names['#createdAt'] = 'createdAt';
+    if (from) {
+      filterParts.push('#createdAt >= :from');
+      values[':from'] = from;
+    }
+    if (to) {
+      filterParts.push('#createdAt <= :to');
+      values[':to'] = to;
+    }
   }
 
   if (filterParts.length) {
@@ -220,6 +241,25 @@ export const handler = async (event) => {
 
       const updated = await updateOrdersWithLabels(siteId, orders, key);
       return ok({ pdfUrl, updatedCount: updated.length, updated });
+    }
+
+    if (method === 'POST' && path.startsWith('/admin/orders/') && path.endsWith('/status')){
+      const body = event.body ? JSON.parse(event.body) : {};
+      const status = body.status;
+      if (!status) return bad(400, 'status required');
+      const parts = path.split('/').filter(Boolean);
+      const orderId = decodeURIComponent(parts[2] || '');
+      if (!orderId) return bad(400, 'orderId required');
+
+      await ddb.update({
+        TableName: ORDERS_TABLE,
+        Key: ORDERS_HAS_SITE_ID ? { siteId, orderId } : { orderId },
+        UpdateExpression: 'SET #st = :st, updatedAt = :u',
+        ExpressionAttributeNames: { '#st':'status' },
+        ExpressionAttributeValues: { ':st': status, ':u': nowIso() }
+      }).promise();
+
+      return ok({ orderId, status });
     }
 
     return bad(404, 'Route not found');

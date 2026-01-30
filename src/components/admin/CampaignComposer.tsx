@@ -138,7 +138,7 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess, source
       const response = await adminCreateCampaign(payload);
       setResult(response);
 
-      if (response.status === "draft") {
+      if (response.status === "draft" || response.status === "scheduled") {
         toast({
           title: "Campaign Scheduled!",
           description: `Will be sent at ${new Date(sendAtLocal).toLocaleString()}`,
@@ -191,7 +191,7 @@ export default function CampaignComposer({ open, onOpenChange, onSuccess, source
             </div>
             <div>
               <h3 className="text-xl font-semibold mb-2">
-                {result.status === "draft" ? "Campaign Scheduled!" : "Campaign Sent Successfully!"}
+                {result.status === "draft" || result.status === "scheduled" ? "Campaign Scheduled!" : "Campaign Sent Successfully!"}
               </h3>
               <p className="text-muted-foreground">Campaign ID: {result.campaignId}</p>
             </div>

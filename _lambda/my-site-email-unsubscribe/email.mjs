@@ -153,7 +153,7 @@ export const subscribe = async (evt) => {
   const now = new Date().toISOString();
   const payload = {
     siteId,
-    email,
+    email: normalizedEmail,
     source,
     status: "subscribed",
     createdAt: now,
@@ -162,15 +162,15 @@ export const subscribe = async (evt) => {
 
   try {
     await db.send(
-      new PutItemCommand({
-        TableName: SUBSCRIBERS_TABLE,
-        Item: {
-          siteId: { S: siteId },
-          email: { S: email },
-          payload: { S: JSON.stringify(payload) }
-        }
-      })
-    );
+        new PutItemCommand({
+          TableName: SUBSCRIBERS_TABLE,
+          Item: {
+            siteId: { S: siteId },
+            email: { S: normalizedEmail },
+            payload: { S: JSON.stringify(payload) }
+          }
+        })
+      );
     return J(204, null);
   } catch (err) {
     console.error("subscribe error", err);
@@ -192,6 +192,7 @@ export const unsubscribe = async (evt) => {
   if (deny) return deny;
 
   if (!email) return J(400, { error: "email required" });
+  const normalizedEmail = email.trim().toLowerCase();
 
   try {
     const res = await db.send(
@@ -199,7 +200,7 @@ export const unsubscribe = async (evt) => {
         TableName: SUBSCRIBERS_TABLE,
         Key: {
           siteId: { S: siteId },
-        email: { S: normalizedEmail }
+          email: { S: normalizedEmail }
       }
     })
   );

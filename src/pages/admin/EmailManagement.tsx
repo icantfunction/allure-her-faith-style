@@ -109,7 +109,7 @@ export default function EmailManagement() {
         email: item.email,
         subscribedAt: item.createdAt,
         source: item.source || "unknown",
-        status: "subscribed" as const,
+        status: item.status === "unsubscribed" ? "unsubscribed" : "subscribed",
       }));
       setSubscribers(legacySubscribers);
     } catch (error: any) {
@@ -252,7 +252,7 @@ export default function EmailManagement() {
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{campaigns.length}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {campaigns.filter((c) => c.status === "draft").length} scheduled
+              {campaigns.filter((c) => c.status === "draft" || c.status === "scheduled").length} scheduled
             </p>
           </CardContent>
         </Card>
@@ -445,9 +445,11 @@ export default function EmailManagement() {
                       <TableBody>
                         {campaigns.map((campaign) => {
                           const now = new Date();
-                          const sendAt = campaign.sendAt ? new Date(campaign.sendAt) : null;
+                          const rawSendAt = campaign.sendAt || (campaign as any).scheduledAt || null;
+                          const sendAt = rawSendAt ? new Date(rawSendAt) : null;
+                          const isScheduledStatus = campaign.status === "draft" || campaign.status === "scheduled";
                           const isScheduledFuture = sendAt && sendAt > now;
-                          const isPendingDispatch = campaign.status === "draft" && sendAt && sendAt <= now;
+                          const isPendingDispatch = isScheduledStatus && sendAt && sendAt <= now;
 
                           return (
                             <TableRow key={campaign.campaignId}>
@@ -458,7 +460,7 @@ export default function EmailManagement() {
                                   <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 hover:bg-green-500/20">
                                     Sent
                                   </Badge>
-                                ) : campaign.status === "draft" && isScheduledFuture ? (
+                                ) : isScheduledStatus && isScheduledFuture ? (
                                   <Badge className="bg-blue-500/10 text-blue-600 dark:text-blue-400 hover:bg-blue-500/20">
                                     Scheduled
                                   </Badge>

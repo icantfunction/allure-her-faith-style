@@ -26,15 +26,12 @@ import AdminAmbassadors from "./pages/admin/Ambassadors";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { AuthProvider } from "@/auth/AuthContext";
 import ProtectedRoute from "@/auth/ProtectedRoute";
-import { usePageVisitor } from "@/hooks/usePageVisitor";
 import { SiteConfigProvider } from "@/contexts/SiteConfigContext";
 import { CartProvider } from "@/contexts/CartContext";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
-  usePageVisitor();
-  
   return (
     <Routes>
       <Route path="/" element={<Index />} />

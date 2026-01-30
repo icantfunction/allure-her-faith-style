@@ -5,12 +5,19 @@ import {
   GetItemCommand,
   UpdateItemCommand
 } from "@aws-sdk/client-dynamodb";
+import { SESv2Client, SendEmailCommand } from "@aws-sdk/client-sesv2";
 
 const db = new DynamoDBClient({});
+const ses = new SESv2Client({});
 
 const SUB_TABLE  = process.env.EMAIL_SUB_TABLE || process.env.SUBSCRIBERS_TABLE || "EmailSubscribers";
 const CAMP_TABLE = process.env.EMAIL_CAMPAIGNS_TABLE || process.env.CAMPAIGNS_TABLE || "EmailCampaigns";
 const SITE_ALLOWED = process.env.SITE_ID_ALLOWED || "";
+const SES_FROM_ADDRESS = process.env.SES_FROM_ADDRESS || "info@shopallureher.com";
+const TEST_RECIPIENTS = (process.env.TEST_RECIPIENTS || "info@shopallureher.com,ramosnco@gmail.com")
+  .split(",")
+  .map((email) => email.trim().toLowerCase())
+  .filter(Boolean);
 
 const J = (c,b)=>({
   statusCode:c,
@@ -34,6 +41,102 @@ const isAdmin = (evt) => {
   const groups = claims["cognito:groups"] || "";
   return groups.toString().includes("admins");
 };
+
+const normalizeSubscriber = (item) => {
+  if (!item) return null;
+  const email = item.email?.S;
+  if (!email) return null;
+  let status = item.status?.S || "subscribed";
+  let source = item.source?.S || null;
+  let createdAt = item.createdAt?.S;
+  let updatedAt = item.updatedAt?.S;
+
+  if (item.payload?.S) {
+    try {
+      const payload = JSON.parse(item.payload.S);
+      if (payload.status) status = payload.status;
+      if (payload.source) source = payload.source;
+      if (payload.createdAt) createdAt = payload.createdAt;
+      if (payload.updatedAt) updatedAt = payload.updatedAt;
+    } catch {
+      // ignore payload parsing errors
+    }
+  }
+
+  return { email, status, source, createdAt, updatedAt };
+};
+
+async function loadSubscribers(siteId) {
+  const res = await db.send(
+    new QueryCommand({
+      TableName: SUB_TABLE,
+      KeyConditionExpression: "siteId = :s",
+      ExpressionAttributeValues: {
+        ":s": { S: siteId }
+      }
+    })
+  );
+
+  return (res.Items || [])
+    .map(normalizeSubscriber)
+    .filter(Boolean);
+}
+
+function applySegment(subscribers, segment) {
+  const safeSegment = segment && typeof segment === "object" ? segment : { type: "all" };
+  if (safeSegment.type === "test") {
+    const unique = Array.from(new Set(TEST_RECIPIENTS));
+    return unique.map((email) => ({ email, status: "subscribed", source: "test" }));
+  }
+  if (safeSegment.type === "source" && safeSegment.source) {
+    return subscribers.filter(
+      (sub) => sub.status === "subscribed" && sub.source === safeSegment.source
+    );
+  }
+  return subscribers.filter((sub) => sub.status === "subscribed");
+}
+
+async function sendCampaignEmails(siteId, subject, bodyHtml, segment) {
+  if (!SES_FROM_ADDRESS) {
+    throw new Error("SES_FROM_ADDRESS not configured");
+  }
+
+  const subscribers = await loadSubscribers(siteId);
+  const activeSubs = applySegment(subscribers, segment);
+
+  let total = activeSubs.length;
+  let success = 0;
+  let failed = 0;
+
+  for (const sub of activeSubs) {
+    try {
+      await ses.send(
+        new SendEmailCommand({
+          FromEmailAddress: SES_FROM_ADDRESS,
+          Destination: { ToAddresses: [sub.email] },
+          Content: {
+            Simple: {
+              Subject: { Data: subject },
+              Body: {
+                Html: { Data: bodyHtml }
+              }
+            }
+          }
+        })
+      );
+      success += 1;
+    } catch (err) {
+      failed += 1;
+      console.error("send failure", sub.email, err);
+    }
+  }
+
+  return {
+    totalRecipients: total,
+    successCount: success,
+    failedCount: failed
+  };
+}
 
 // ---------- PUBLIC: subscribe (no auth) ----------
 // POST /public/email/subscribe
@@ -113,12 +216,9 @@ export const listSubscribers = async (evt)=>{
       ExclusiveStartKey
     }));
 
-    const items = (r.Items || []).map(i => ({
-      email:      i.email.S,
-      createdAt:  i.createdAt?.S,
-      updatedAt:  i.updatedAt?.S,
-      source:     i.source?.S || null
-    }));
+    const items = (r.Items || [])
+      .map(normalizeSubscriber)
+      .filter(Boolean);
 
     let nextToken = null;
     if (r.LastEvaluatedKey) {
@@ -147,24 +247,61 @@ export const createCampaign = async (evt)=>{
     return J(400,{error:"invalid JSON body"});
   }
 
-  const { siteId, name, subject, bodyHtml="", bodyText="", scheduledAt=null, segment } = body;
+  const {
+    siteId,
+    name,
+    subject,
+    bodyHtml = "",
+    bodyText = "",
+    scheduledAt = null,
+    sendAt = null,
+    sendAtUtc = null,
+    segment
+  } = body;
   const deny = guardSite(siteId); if (deny) return deny;
 
   if (!name || !subject) {
     return J(400,{error:"name and subject required"});
   }
 
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const nowIso = nowDate.toISOString();
   const campaignId = body.campaignId ||
     (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2));
 
-  const status = scheduledAt ? "scheduled" : "draft";
+  const rawSendAt = sendAtUtc || sendAt || scheduledAt || null;
+  let sendAtDate = rawSendAt ? new Date(rawSendAt) : null;
+  if (sendAtDate && Number.isNaN(sendAtDate.getTime())) {
+    sendAtDate = null;
+  }
+  const sendAtIso = (sendAtDate || nowDate).toISOString();
+  const FUTURE_THRESHOLD_MS = 60 * 1000; // 1 minute
+  const isScheduled =
+    sendAtDate && sendAtDate.getTime() - nowDate.getTime() > FUTURE_THRESHOLD_MS;
+
+  let status = "draft";
+  let sendStatus = "draft";
+  let stats = undefined;
 
   if (segment?.type && !["all", "source", "test"].includes(segment.type)) {
     return J(400, { error: "invalid segment type" });
   }
   if (segment?.type === "source" && !segment.source) {
     return J(400, { error: "segment.source required for source segment" });
+  }
+
+  if (isScheduled) {
+    status = "scheduled";
+    sendStatus = "scheduled";
+  } else {
+    try {
+      stats = await sendCampaignEmails(siteId, subject, bodyHtml, segment);
+      status = "sent";
+      sendStatus = "sent";
+    } catch (err) {
+      console.error("campaign_send_failed", err);
+      return J(500, { error: err?.message || "email sending not configured" });
+    }
   }
 
   const payload = {
@@ -174,25 +311,30 @@ export const createCampaign = async (evt)=>{
     subject,
     bodyHtml,
     bodyText,
-    scheduledAt,
+    sendAt: sendAtIso,
     segment: segment || { type: "all" },
     status,
-    createdAt: now,
-    updatedAt: now
+    stats,
+    createdAt: nowIso,
+    updatedAt: nowIso
   };
 
   try {
-    await db.send(new PutItemCommand({
-      TableName: CAMP_TABLE,
-      Item: {
-        siteId:     { S: siteId },
-        campaignId: { S: campaignId },
-        status:     { S: status },
-        payload:    { S: JSON.stringify(payload) }
-      }
-    }));
+    await db.send(
+      new PutItemCommand({
+        TableName: CAMP_TABLE,
+        Item: {
+          siteId: { S: siteId },
+          campaignId: { S: campaignId },
+          status: { S: status },
+          sendStatus: { S: sendStatus },
+          sendAt: { S: sendAtIso },
+          payload: { S: JSON.stringify(payload) }
+        }
+      })
+    );
 
-    return J(201,{ campaignId, status });
+    return J(201, { campaignId, status, stats, sendAt: sendAtIso });
   } catch (err) {
     console.error("createCampaign error", err);
     return J(500,{error:"internal error"});
@@ -219,11 +361,24 @@ export const listCampaigns = async (evt)=>{
     }));
 
     const items = (r.Items || []).map(i => {
-      if (i.payload?.S) return JSON.parse(i.payload.S);
+      let payload = {};
+      if (i.payload?.S) {
+        try {
+          payload = JSON.parse(i.payload.S);
+        } catch {
+          payload = {};
+        }
+      }
+      const status =
+        payload.status || i.status?.S || i.sendStatus?.S || "unknown";
+      const sendAt =
+        payload.sendAt || payload.scheduledAt || i.sendAt?.S || null;
       return {
-        siteId,
-        campaignId: i.campaignId.S,
-        status: i.status?.S || "unknown"
+        ...payload,
+        siteId: payload.siteId || siteId,
+        campaignId: payload.campaignId || i.campaignId.S,
+        status,
+        sendAt
       };
     });
 

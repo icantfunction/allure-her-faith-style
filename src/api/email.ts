@@ -6,6 +6,7 @@ export type Subscriber = {
   createdAt: string;
   updatedAt: string;
   source: string | null;
+  status?: "subscribed" | "unsubscribed";
 };
 
 export type CampaignStats = {
@@ -26,7 +27,8 @@ export type Campaign = {
   subject: string;
   bodyHtml: string;
   sendAt?: string | null;
-  status: "draft" | "sent" | "failed";
+  scheduledAt?: string | null;
+  status: "draft" | "sent" | "failed" | "scheduled";
   createdAt: string;
   updatedAt: string;
   stats?: CampaignStats;
@@ -35,9 +37,19 @@ export type Campaign = {
 
 export type CreateCampaignResponse = {
   campaignId: string;
-  status: "draft" | "sent" | "failed";
+  status: "draft" | "sent" | "failed" | "scheduled";
   stats?: CampaignStats;
 };
+
+function normalizeCampaign(raw: any): Campaign {
+  const sendAt = raw?.sendAt ?? raw?.scheduledAt ?? raw?.send_at ?? null;
+  const status = raw?.status ?? raw?.sendStatus ?? "draft";
+  return {
+    ...raw,
+    sendAt,
+    status
+  } as Campaign;
+}
 
 async function getAuthToken(): Promise<string | null> {
   try {
@@ -163,7 +175,13 @@ export async function adminListCampaigns() {
   }
   
   const json = await res.json();
-  return json as Campaign[];
+  if (Array.isArray(json)) {
+    return json.map(normalizeCampaign);
+  }
+  if (Array.isArray(json?.items)) {
+    return json.items.map(normalizeCampaign);
+  }
+  return [normalizeCampaign(json)];
 }
 
 export async function adminCreateCampaign(input: {
@@ -207,7 +225,10 @@ export async function adminCreateCampaign(input: {
   }
 
   const json = await res.json();
-  return json as CreateCampaignResponse;
+  return {
+    ...(json as CreateCampaignResponse),
+    status: (json as any)?.status ?? (json as any)?.sendStatus ?? "draft",
+  };
 }
 
 export function localToUtcIso(local: string): string {

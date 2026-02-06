@@ -16,6 +16,13 @@ const ReturnPolicy = () => {
             <li>Damaged or incorrect items: Contact us within 7 days with a photo to arrange an exchange.</li>
             <li>Shipping for exchanges is the customer's responsibility unless the item was damaged or incorrect.</li>
           </ul>
+          <div className="pt-4 border-t border-border">
+            <h2 className="text-2xl font-heading text-foreground">Processing & Shipping</h2>
+            <p className="text-foreground/80 mt-3">
+              Processing times for orders are 1-2 business days. Shipping typically takes 5-7 business days after
+              processing.
+            </p>
+          </div>
         </div>
       </main>
       <Footer />

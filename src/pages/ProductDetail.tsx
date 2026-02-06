@@ -170,6 +170,9 @@ export default function ProductDetail() {
               <p className="text-3xl font-medium text-primary">
                 ${product.price.toFixed(2)}
               </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Processing times for orders are 1-2 business days. Shipping typically takes 5-7 business days after processing.
+              </p>
             </div>
 
             {product.description && (

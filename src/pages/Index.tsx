@@ -4,6 +4,7 @@ import About from "@/components/About";
 import Shop from "@/components/Shop";
 import Newsletter from "@/components/Newsletter";
 import InsiderReminderPopup from "@/components/InsiderReminderPopup";
+import Footer from "@/components/Footer";
 import { useAmbassadorTracking } from "@/hooks/useAmbassadorTracking";
 
 const Index = () => {
@@ -17,6 +18,7 @@ const Index = () => {
       <Shop />
       <Newsletter />
       <InsiderReminderPopup />
+      <Footer />
     </div>
   );
 };

@@ -26,6 +26,12 @@ export default function Header() {
             >
               Try On
             </Link>
+            <Link
+              to="/return-policy"
+              className="text-sm font-medium text-foreground hover:text-primary transition-colors"
+            >
+              Return Policy
+            </Link>
             <MiniCart />
           </nav>
         </div>

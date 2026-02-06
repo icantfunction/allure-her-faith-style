@@ -61,6 +61,9 @@ const CheckoutSuccess = () => {
                 <Package className="h-4 w-4 text-muted-foreground" />
                 <span className="text-muted-foreground">You'll receive tracking information once your order ships</span>
               </div>
+              <p className="text-xs text-muted-foreground">
+                Processing times for orders are 1-2 business days. Shipping typically takes 5-7 business days after processing.
+              </p>
               {sessionId && (
                 <p className="text-xs text-muted-foreground pt-2 border-t border-border">
                   Reference: {sessionId.slice(0, 20)}...

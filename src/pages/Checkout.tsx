@@ -768,6 +768,10 @@ export default function Checkout() {
                         )}
                       </div>
                     )}
+
+                    <p className="text-xs text-muted-foreground">
+                      Processing times for orders are 1-2 business days. Shipping typically takes 5-7 business days after processing.
+                    </p>
                     
                     {shippingError && (
                       <p className="text-xs text-destructive">{shippingError}</p>
